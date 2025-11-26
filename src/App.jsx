@@ -1,49 +1,51 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import routes from './routes/config';
+import { useEffect, useState } from 'react';
 import Header from './layouts/Header';
 import Footer from './layouts/Footer';
+import { supabase } from './supabaseClient';
 
-const ProtectedRoute = ({ element: Component, ...rest }) => {
-  // Logic kiểm tra xác thực (ví dụ: kiểm tra token trong localStorage)
-  const isAuthenticated = localStorage.getItem('authToken');
-
-  // Nếu không xác thực, chuyển hướng về trang đăng nhập hoặc trang chủ
-  if (!isAuthenticated) {
-    // Có thể dùng <Navigate to="/login" replace /> nếu cần chuyển hướng trong React Router v6
-    return <h1>Vui lòng đăng nhập để truy cập trang này.</h1>;
-  }
-
-  // Nếu đã xác thực, hiển thị component
-  return <Component {...rest} />;
-};
-
-function App() {
+function AppRoutes({ user }) {
+  const location = useLocation(); // ✅ OK vì nằm bên trong Router
+  const hideHeaderPaths = ['/signin', '/signup', '/verify'];
 
   return (
     <>
-      <Router>
-        <Header />
-        <Routes>
-          {routes.map((route, index) => {
-            const ElementComponent = route.private ? (
-              <ProtectedRoute element={route.element} />
-            ) : (
-              <route.element />
-            );
+      {!hideHeaderPaths.includes(location.pathname) && <Header user={user} />}
+      <Routes>
+        {routes.map((route, index) => {
+          const ElementComponent = route.private ? (
+            <ProtectedRoute element={route.element} />
+          ) : (
+            <route.element />
+          );
 
-            return (
-              <Route
-                key={index}
-                path={route.path}
-                element={ElementComponent}
-              />
-            );
-          })}
-        </Routes>
-        <Footer />
-      </Router>
+          return <Route key={index} path={route.path} element={ElementComponent} />;
+        })}
+      </Routes>
+      {!hideHeaderPaths.includes(location.pathname) && <Footer />}
     </>
-  )
+  );
 }
 
-export default App
+export default function App() {
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session?.user) setUser(data.session.user);
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user || null);
+    });
+
+    return () => listener.subscription.unsubscribe();
+  }, []);
+
+  return (
+    <Router>
+      <AppRoutes user={user} />
+    </Router>
+  );
+}

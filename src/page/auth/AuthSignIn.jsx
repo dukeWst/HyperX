@@ -1,42 +1,37 @@
-import { useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../../supabaseClient";
+import LazyLoading from "../../LazyLoading";
 
 const AuthSignIn = () => {
     const navigate = useNavigate();
-
-    const SUPABASE_URL = "https://tfyzavnudmmaxyuaeujb.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRmeXphdm51ZG1tYXh5dWFldWpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQxMzU1MjAsImV4cCI6MjA3OTcxMTUyMH0.l4AGGDyGJC1_REEbTMxKDQn-h0UWwhSYy5vTsdSJfDQ";
 
     const [formData, setFormData] = useState({
         email: "",
         password: "",
     });
 
+    const [loggingIn, setLoggingIn] = useState(false);
+
+
+
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState(null);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prevData => ({
-            ...prevData,
-            [name]: value,
-        }));
-    }
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (SUPABASE_URL.includes('your-project-id')) {
-            setMessage({ type: 'error', text: "LƯU Ý: Vui lòng cập nhật SUPABASE URL và KEY. Đang sử dụng Mock Client." });
-        }
-
         setLoading(true);
         setMessage(null);
+
         const { email, password } = formData;
 
         try {
-            // 1. Đăng nhập
             const { data, error } = await supabase.auth.signInWithPassword({
                 email,
                 password,
@@ -45,74 +40,66 @@ const AuthSignIn = () => {
             if (error) {
                 setLoading(false);
                 let errorText = "Đã xảy ra lỗi trong quá trình đăng nhập.";
+
                 if (error.message.includes("Invalid login credentials")) {
                     errorText = "Email hoặc mật khẩu không chính xác.";
                 } else if (error.message.includes("Email not confirmed")) {
-                    errorText = "Email chưa được xác nhận. Vui lòng kiểm tra email của bạn.";
+                    errorText = "Email chưa được xác nhận. Vui lòng kiểm tra email.";
                 } else {
-                    errorText = `Lỗi đăng nhập: ${error.message}`;
+                    errorText = error.message;
                 }
-                setMessage({ type: 'error', text: errorText });
-                console.error("Supabase Sign In Error:", error);
+
+                setMessage({ type: "error", text: errorText });
                 return;
             }
 
-            // 2. Kiểm tra xem email đã được verify chưa
-            if (data.user) {
-                console.log("User data:", data.user);
-
-                // Kiểm tra email_confirmed_at
-                if (!data.user.email_confirmed_at) {
-                    // Email chưa được verify
-                    setLoading(false);
-
-                    // Đăng xuất ngay lập tức
-                    await supabase.auth.signOut();
-
-                    setMessage({
-                        type: 'error',
-                        text: "Please verify your email before signing in. Check your inbox for the confirmation link."
-                    });
-
-                    // Chuyển đến trang verify sau 2 giây
-                    setTimeout(() => {
-                        navigate('/verify', {
-                            state: {
-                                email: email,
-                                message: 'Please check your email to confirm your account before signing in.'
-                            }
-                        });
-                    }, 2000);
-
-                    return;
-                }
-
-                // Email đã verify, cho phép đăng nhập
+            if (data.user && !data.user.email_confirmed_at) {
                 setLoading(false);
-                setMessage({
-                    type: 'success',
-                    text: `Đăng nhập thành công! Welcome ${data.user.email}`
-                });
 
-                console.log("User signed in:", data.user);
+                await supabase.auth.signOut();
 
-                // Chuyển đến trang chủ sau 1 giây
                 setTimeout(() => {
-                    navigate('/');
-                }, 1000);
+                    navigate("/verify", {
+                        state: {
+                            email,
+                            message: "Please verify your email before signing in."
+                        }
+                    });
+                }, 1500);
 
-            } else {
-                setLoading(false);
-                setMessage({ type: 'error', text: "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin." });
+                return;
             }
+
+            setLoading(false);
+
+            setMessage({
+                type: "success",
+                text: `Đăng nhập thành công!`
+            });
+
+            // CHỈ chạy khi đăng nhập đúng
+            setLoggingIn(true);
+
+            setTimeout(() => {
+                navigate("/");
+            }, 800);
+
+
+            setTimeout(() => {
+                navigate("/");
+            }, 1000);
+
         } catch (e) {
             setLoading(false);
-            setMessage({ type: 'error', text: `Lỗi hệ thống: ${e.message}` });
+            setMessage({ type: "error", text: e.message });
         }
-    }
+    };
 
     return (
-        <div className="relative isolate px-6 pt-14 lg:px-8 bg-gray-900 min-h-screen">
+        <div className="relative isolate flex items-center justify-center min-h-screen px-6 bg-gray-900">
+            {loggingIn && <LazyLoading status={'Logging in...'} />}
+
+            {/* === TOP GRADIENT (GIỮ NGUYÊN) === */}
             <div
                 aria-hidden="true"
                 className="absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80"
@@ -125,100 +112,100 @@ const AuthSignIn = () => {
                     className="relative left-[calc(50%-11rem)] aspect-1155/678 w-144.5 -translate-x-1/2 rotate-30 bg-linear-to-tr from-[#ff80b5] to-[#9089fc] opacity-30 sm:left-[calc(50%-30rem)] sm:w-288.75"
                 />
             </div>
-            <div className="mx-auto max-w-2xl py-32 sm:py-48 lg:py-12">
-                <div className="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
-                    <div className="sm:mx-auto sm:w-full sm:max-w-sm">
-                        <h2 className="mt-10 text-center text-2xl/9 font-bold tracking-tight text-white">Sign in to your account</h2>
+
+            {/* === FORM KHUNG GIỐNG VERIFY === */}
+            <div className="relative w-full max-w-md bg-gray-900/60 backdrop-blur-xl border border-white/10 rounded-2xl px-10 py-12 shadow-2xl shadow-black/40">
+
+                <h2 className="text-center text-3xl font-bold tracking-tight text-white">
+                    Sign in to <span className="text-3xl font-bold bg-gradient-to-r from-white to-indigo-500 bg-clip-text text-transparent">
+                        HyperX
+                    </span>
+                </h2>
+
+                <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+                    <div>
+                        <label htmlFor="email" className="block text-sm font-medium text-gray-100">
+                            Email address
+                        </label>
+                        <input
+                            id="email"
+                            name="email"
+                            type="email"
+                            required
+                            value={formData.email}
+                            onChange={handleChange}
+                            disabled={loading}
+                            className="mt-2 block w-full rounded-md bg-white/5 px-3 py-2 text-white 
+                            outline outline-1 outline-white/10 placeholder:text-gray-500
+                            focus:outline-2 focus:outline-indigo-500"
+                        />
                     </div>
-                    <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
-                        <form onSubmit={handleSubmit} className="space-y-6">
-                            <div>
-                                <label htmlFor="email" className="block text-sm/6 font-medium text-gray-100">
-                                    Email address
-                                </label>
-                                <div className="mt-2">
-                                    <input
-                                        id="email"
-                                        name="email"
-                                        type="email"
-                                        required
-                                        autoComplete="email"
-                                        value={formData.email}
-                                        onChange={handleChange}
-                                        disabled={loading}
-                                        className="block w-full rounded-md bg-white/5 px-3 py-1.5 text-base text-white outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-500 sm:text-sm/6"
-                                    />
-                                </div>
-                            </div>
-                            <div>
-                                <div className="flex items-center justify-between">
-                                    <label htmlFor="password" className="block text-sm/6 font-medium text-gray-100">
-                                        Password
-                                    </label>
-                                    <div className="text-sm">
-                                        <Link to="#" className="font-semibold text-indigo-400 hover:text-indigo-300">
-                                            Forgot password?
-                                        </Link>
-                                    </div>
-                                </div>
-                                <div className="mt-2">
-                                    <input
-                                        id="password"
-                                        name="password"
-                                        type="password"
-                                        required
-                                        autoComplete="current-password"
-                                        value={formData.password}
-                                        onChange={handleChange}
-                                        disabled={loading}
-                                        className="block w-full rounded-md bg-white/5 px-3 py-1.5 text-base text-white outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-500 sm:text-sm/6"
-                                    />
-                                </div>
-                            </div>
 
-                            {message && (
-                                <div className={`px-4 py-2 rounded-md text-center text-sm/6 font-medium ${message.type === 'error'
-                                    ? 'bg-red-900/50 text-red-300'
-                                    : 'bg-green-900/50 text-green-300'
-                                    }`}>
-                                    {message.text}
-                                </div>
-                            )}
+                    <div>
+                        <div className="flex justify-between">
+                            <label htmlFor="password" className="block text-sm font-medium text-gray-100">
+                                Password
+                            </label>
 
-                            <div>
-                                <button
-                                    type="submit"
-                                    disabled={loading || !formData.email || !formData.password}
-                                    className="flex w-full justify-center rounded-md bg-indigo-500 px-3 py-1.5 text-sm/6 font-semibold text-white hover:bg-indigo-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 disabled:opacity-50"
-                                >
-                                    {loading ? 'Signing in...' : 'Sign in'}
-                                </button>
-                            </div>
-                        </form>
-
-                        <p className="mt-10 text-center text-sm/6 text-gray-400">
-                            Not a member?{' '}
-                            <Link to="/signup" className="font-semibold text-indigo-400 hover:text-indigo-300">
-                                Sign up
+                            <Link className="text-sm font-semibold text-indigo-400 hover:text-indigo-300">
+                                Forgot password?
                             </Link>
-                        </p>
-                    </div>
-                </div>
-            </div>
-            <div
-                aria-hidden="true"
-                className="absolute inset-x-0 top-[calc(100%-13rem)] -z-10 transform-gpu overflow-hidden blur-3xl sm:top-[calc(100%-30rem)]"
-            >
-                <div
-                    style={{
-                        clipPath:
-                            'polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)',
-                    }}
-                    className="relative left-[calc(50%+3rem)] aspect-1155/678 w-144.5 -translate-x-1/2 bg-linear-to-tr from-[#ff80b5] to-[#9089fc] opacity-30 sm:left-[calc(50%+36rem)] sm:w-288.75"
-                />
-            </div>
-        </div>
-    )
-}
+                        </div>
 
-export default AuthSignIn
+                        <input
+                            id="password"
+                            name="password"
+                            type="password"
+                            required
+                            value={formData.password}
+                            onChange={handleChange}
+                            disabled={loading}
+                            className="mt-2 block w-full rounded-md bg-white/5 px-3 py-2 text-white 
+                            outline outline-1 outline-white/10 placeholder:text-gray-500
+                            focus:outline-2 focus:outline-indigo-500"
+                        />
+                    </div>
+
+                    {message && (
+                        <div
+                            className={`px-4 py-2 rounded-md text-center text-sm font-medium ${message.type === "error"
+                                ? "bg-red-900/50 text-red-300"
+                                : "bg-green-900/50 text-green-300"
+                                }`}
+                        >
+                            {message.text}
+                        </div>
+                    )}
+
+                    <button
+                        type="submit"
+                        disabled={loading}
+                        className="w-full rounded-md bg-indigo-500 py-2.5 font-semibold text-white 
+                        hover:bg-indigo-400 transition disabled:opacity-50"
+                    >
+
+                        {loading ? "Signing in..." : "Sign in"}
+
+                    </button>
+                </form>
+
+                <p className="mt-6 text-center text-sm text-gray-400">
+                    <div className="pb-3">Not a member?{" "}
+                        <Link to="/signup" className="font-semibold text-indigo-400 hover:text-indigo-300">
+                            Sign up
+                        </Link>
+                    </div>
+                    <Link to="/" className="font-semibold text-indigo-400 hover:text-indigo-300 border-t border-gray-700 pt-1">
+                        Back to home
+                    </Link>
+                </p>
+
+            </div>
+
+            {/* === BOTTOM GRADIENT (GIỮ NGUYÊN) === */}
+
+        </div>
+    );
+};
+
+export default AuthSignIn;
