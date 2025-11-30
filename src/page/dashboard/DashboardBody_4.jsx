@@ -1,4 +1,5 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
 
 const DashboardBody_4 = () => {
     return (
@@ -25,12 +26,12 @@ const DashboardBody_4 = () => {
                         Streamline Your Journey from Code to Community. We Handle Distribution, So You Focus on Creation.
                     </p>
                     <div className="mt-10 flex items-center justify-center gap-x-6">
-                        <a
-                            href="#"
+                        <Link
+                            to="/product"
                             className="rounded-md bg-indigo-500 px-8 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-indigo-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
                         >
                             Get started
-                        </a>
+                        </Link>
 
                     </div>
                 </div>

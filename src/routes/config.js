@@ -11,6 +11,7 @@ import Product from '../page/product/page/Product';
 import NewProduct from '../page/product/page/NewProduct';
 import Docs from '../page/docs/docs';
 import Setting from '../page/setting/Setting';
+import Community from '../page/community/Community';
 
 const routes = [
     {
@@ -66,7 +67,12 @@ const routes = [
         private: true,
         name: "Thêm sản phẩm",
     },
-
+    {
+        path: "/community",
+        element: Community,
+        private: true,
+        name: "Cộng đồng",
+    },
     // Not found
     {
         path: "*",
