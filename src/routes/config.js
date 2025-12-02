@@ -8,8 +8,8 @@ import NotFound from '../page/notfound/NotFound'
 import VerifyPage from '../page/auth/VerifyPage'
 import AuthCallback from '../page/auth/AuthCallback';
 import Product from '../page/product/page/Product';
+import NewProduct from '../page/product/page/NewProduct';
 import Docs from '../page/docs/docs';
-import Setting from '../page/setting/Setting';
 
 const routes = [
     {
@@ -51,14 +51,6 @@ const routes = [
         element: Docs, // Lưu ý: Biến này phải khớp với const Docs bên trên
         name: "Tài liệu",
     },
-
-    {
-        path: "/setting",
-        element: Setting, // Lưu ý: Biến này phải khớp với const Docs bên trên
-        private: true,
-        name: "Cài đặt",
-    },
-
     // Not found
     {
         path: "*",

@@ -7,7 +7,7 @@ import LazyLoading from '../LazyLoading';
 
 const navigation = [
     { name: 'Product', href: 'product' },
-    { name: 'Features', href: 'features' },
+    { name: 'Community', href: 'community' },
     { name: 'Docs', href: 'docs' },
     { name: 'Q&A', href: 'q&a' },
 ];

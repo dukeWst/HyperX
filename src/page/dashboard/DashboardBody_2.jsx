@@ -29,14 +29,6 @@ const DashboardBody_2 = () => {
                         <p className="text-lg text-gray-400 mb-8 max-w-lg leading-relaxed">
                             Anim aute id magna aliqua ad ad non deserunt sunt. Qui irure qui lorem cupidatat commodo. Elit sunt amet fugiat veniam occaecat. Anim aute id magna aliqua ad ad non deserunt sunt.
                         </p>
-                        <div className="flex items-center space-x-6">
-                            <a
-                                href="#"
-                                className="rounded-md bg-indigo-600 px-12 py-2.5 text-sm font-semibold text-white shadow-lg transition duration-300 hover:bg-indigo-500"
-                            >
-                                Get started
-                            </a>
-                        </div>
                     </div>
 
                     <div className="relative">
