@@ -54,20 +54,29 @@ const routes = [
         private: true,
         name: "Sản phẩm",
     },
-    // SỬA DÒNG NÀY: Đổi từ "/product/new-product" thành "/create-product"
     {
         path: "/create-product", 
         element: NewProduct,
         private: true,
         name: "Thêm sản phẩm",
     },
-    // Route chi tiết giữ nguyên
+    
+    // ✅ QUAN TRỌNG: Đặt route Edit lên trước
+    {
+        path: "/product/edit/:id", 
+        element: NewProduct,      
+        private: true,
+        name: "Sửa sản phẩm",
+    },
+
+    // ⬇️ Đặt route Detail xuống dưới cùng trong nhóm /product/
     {
         path: "/product/:id", 
-        element: ProductDetail,
+        element: ProductDetail,   
         private: true,
         name: "Chi tiết sản phẩm",
     },
+
     // -----------------------------------------------------------
     {
         path: "/docs",

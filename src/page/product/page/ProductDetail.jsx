@@ -243,7 +243,7 @@ const ProductDetail = () => {
                         {product.instructions && (
                             <div className="bg-[#1e293b] rounded-2xl border border-slate-700/50 p-6 md:p-8">
                                 <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                                    <BookOpen size={20} className="text-indigo-400" /> Usage Instructions
+                                    Usage Instructions
                                 </h3>
                                 <div className="prose prose-invert max-w-none text-slate-300 leading-relaxed bg-slate-900/50 p-4 rounded-xl border border-slate-700/50">
                                     <p className="whitespace-pre-line">{product.instructions}</p>
