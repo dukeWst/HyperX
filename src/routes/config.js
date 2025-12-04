@@ -1,4 +1,4 @@
-import { lazy, Profiler } from 'react';
+import { lazy } from 'react';
 
 // ... Các import cũ giữ nguyên ...
 import AuthSignIn from '../page/auth/AuthSignIn';
@@ -10,12 +10,14 @@ import AuthCallback from '../page/auth/AuthCallback';
 import Product from '../page/product/page/Product';
 import NewProduct from '../page/product/page/NewProduct';
 
-// 1. THÊM IMPORT NÀY (Nhớ tạo file ProductDetail.jsx trước nhé)
+// Import ProductDetail
 import ProductDetail from '../page/product/page/ProductDetail'; 
 
 import Docs from '../page/docs/docs';
 import Setting from '../page/setting/Setting';
 import Community from '../page/community/CommunityPage';
+import UserProfile from '../page/profile/UserProfile';
+import PostDetail from '../page/community/PostDetail';
 
 const routes = [
     {
@@ -48,6 +50,23 @@ const routes = [
         name: "Xác thực người dùng",
     },
         // -----------------------------------------------------------
+    
+    // === PHẦN PROFILE (Cần 2 routes) ===
+    {
+        path: "/profile",
+        element: UserProfile,
+        private: true,
+        name: "Trang cá nhân",
+    },
+    // 👇👇👇 QUAN TRỌNG: THÊM ROUTE NÀY ĐỂ XEM PROFILE NGƯỜI KHÁC 👇👇👇
+    {
+        path: "/profile/:id",
+        element: UserProfile,
+        private: true,
+        name: "Trang cá nhân người dùng",
+    },
+
+        // -----------------------------------------------------------
     {
         path: "/product",
         element: Product,
@@ -61,7 +80,6 @@ const routes = [
         name: "Thêm sản phẩm",
     },
     
-    // ✅ QUAN TRỌNG: Đặt route Edit lên trước
     {
         path: "/product/edit/:id", 
         element: NewProduct,      
@@ -69,7 +87,6 @@ const routes = [
         name: "Sửa sản phẩm",
     },
 
-    // ⬇️ Đặt route Detail xuống dưới cùng trong nhóm /product/
     {
         path: "/product/:id", 
         element: ProductDetail,   
@@ -96,6 +113,12 @@ const routes = [
         element: Community,
         private: true,
         name: "Cộng đồng",
+    },
+    {
+        path: "/post/:id",  // Đường dẫn chi tiết bài viết
+        element: PostDetail,
+        private: true,      // Yêu cầu đăng nhập mới xem được (tùy bạn chọn)
+        name: "Chi tiết bài viết",
     },
         // -----------------------------------------------------------
     {

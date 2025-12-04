@@ -5,10 +5,6 @@ import { Link } from "react-router-dom";
 import PostFormModal from "./PostFormModal";
 import PostItem from "./PostItem";
 
-// Helper: Format Time
-
-
-// --- MAIN COMMUNITY COMPONENT ---
 export default function Community({ user }) {
     const [posts, setPosts] = useState([]);
     const [loading, setLoading] = useState(true);

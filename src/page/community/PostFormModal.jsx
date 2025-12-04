@@ -1,8 +1,12 @@
 import { X } from "lucide-react";
 import { Link } from "react-router-dom";
 
-const PostFormModal = ({ show, onClose, onSubmit, form, setForm, loading, currentUser }) => {
+const PostFormModal = ({ show, onClose, onSubmit, form, setForm, loading, currentUser, isEdit = false }) => {
     if (!show) return null;
+    
+    // 👇 Thêm biến Title và Button Text
+    const modalTitle = isEdit ? "Edit Post" : "Create New Post";
+    const buttonText = isEdit ? (loading ? "Updating..." : "Update Post") : (loading ? "Posting..." : "Submit Post");
     return (
         // 👇 SỬA Ở ĐÂY: Thay 'bg-black bg-opacity-70' thành 'bg-black/30' (hoặc thấp hơn)
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
@@ -31,7 +35,7 @@ const PostFormModal = ({ show, onClose, onSubmit, form, setForm, loading, curren
                         ></textarea>
                         <div className="flex justify-end gap-3">
                             <button onClick={onClose} className="px-6 py-2 bg-gray-700/50 hover:bg-gray-600 text-white font-semibold rounded-lg transition">Cancel</button>
-                            <button onClick={onSubmit} disabled={loading || !form.title.trim() || !form.content.trim()} className="px-6 py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-500 transition disabled:bg-gray-600/50">{loading ? "Posting..." : "Submit Post"}</button>
+                           <button onClick={onSubmit} disabled={loading || !form.title.trim() || !form.content.trim()} className="px-6 py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-500 transition disabled:bg-gray-600/50">{buttonText}</button>
                         </div>
                     </>
                 )}

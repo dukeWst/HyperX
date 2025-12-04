@@ -4,7 +4,8 @@ import { supabase } from '../../../supabaseClient';
 import {
     ArrowLeft, Package, Edit, Trash2,
     DollarSign, Clock, CheckCircle2, ArrowRight,
-    ChevronLeft, ChevronRight, X, Download, AlertTriangle
+    ChevronLeft, ChevronRight, X, Download, AlertTriangle,
+    MoreVertical // Import icon 3 chấm dọc (hoặc dùng Menu cho 3 gạch)
 } from 'lucide-react';
 import UserAvatar from '../../community/UserAvatar';
 
@@ -13,6 +14,9 @@ const ProductDetail = () => {
     const navigate = useNavigate();
     const scrollRef = useRef(null);
     const relatedListRef = useRef(null);
+    
+    // 1. Thêm Ref cho menu để xử lý click outside
+    const menuRef = useRef(null);
 
     const [product, setProduct] = useState(null);
     const [currentUser, setCurrentUser] = useState(null);
@@ -21,9 +25,13 @@ const ProductDetail = () => {
     const [showModal, setShowModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+    
+    // 2. Thêm state để đóng mở menu
+    const [showMenu, setShowMenu] = useState(false);
 
     const KNOWN_OS = ['Windows', 'macOS', 'Linux'];
 
+    // ... (Giữ nguyên các hàm formatCurrency, scroll, handleConfirmDelete)
     const formatCurrency = (amount) => {
         if (amount === 0 || amount === undefined) return "Free";
         return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
@@ -59,6 +67,21 @@ const ProductDetail = () => {
         }
     };
 
+    // 3. Xử lý sự kiện click ra ngoài để đóng menu
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (menuRef.current && !menuRef.current.contains(event.target)) {
+                setShowMenu(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
+
+    // ... (Giữ nguyên useEffect fetchData)
     useEffect(() => {
         const fetchData = async () => {
             setIsLoading(true);
@@ -169,32 +192,61 @@ const ProductDetail = () => {
 
     return (
         <main ref={scrollRef} className="flex-1 flex flex-col h-full relative bg-[#0f172a] overflow-y-auto custom-scrollbar pt-18">
-            <div className="p-6 md:px-10 py-6 flex items-center justify-between bg-[#0f172a]/80 backdrop-blur-sm sticky top-0 z-20 border-b border-slate-800">
-                <button onClick={() => navigate('/product')} className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors group">
-                    <div className="p-2 rounded-lg bg-slate-800 group-hover:bg-slate-700 transition-colors"><ArrowLeft size={20} /></div>
-                    <span className="font-medium">Back to Products</span>
-                </button>
-                
-                {isOwner && (
-                    <div className="flex gap-3">
-                        <button 
-                            onClick={() => setShowDeleteModal(true)}
-                            className="flex items-center gap-2 px-4 py-2 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-lg font-medium transition-all border border-red-500/20"
-                        >
-                            <Trash2 size={18} /> <span className="hidden sm:inline">Delete</span>
-                        </button>
-                        <Link to={`/product/edit/${product.id}`}>
-                            <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-all shadow-lg shadow-indigo-500/20 active:scale-95">
-                                <Edit size={18} /> <span className="hidden sm:inline">Edit Product</span>
-                            </button>
-                        </Link>
-                    </div>
-                )}
-            </div>
 
             <div className="p-6 md:px-10 pb-20 max-w-7xl mx-auto w-full">
+
+                {/* 4. Cấu trúc lại Header: Flex justify-between để chia trái phải */}
+                <div className="flex justify-between items-center mb-6">
+                    {/* Nút Back nằm bên Trái */}
+                    <button onClick={() => navigate('/product')} className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors group">
+                        <div className="p-2 rounded-lg bg-slate-800 group-hover:bg-slate-700 transition-colors"><ArrowLeft size={20} /></div>
+                    </button>
+
+                    {/* Menu Options nằm bên Phải (chỉ hiện nếu là Owner) */}
+                    {isOwner && (
+                        <div className="relative" ref={menuRef}>
+                            {/* Nút kích hoạt menu (3 gạch/3 chấm) */}
+                            <button 
+                                onClick={() => setShowMenu(!showMenu)}
+                                className={`p-2 rounded-lg transition-colors ${showMenu ? 'bg-slate-700 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'}`}
+                            >
+                                <MoreVertical size={20} />
+                            </button>
+
+                            {/* Dropdown Menu */}
+                            {showMenu && (
+                                <div className="absolute right-0 top-full mt-2 w-48 bg-[#1e293b] border border-slate-700 rounded-xl shadow-xl shadow-black/50 z-20 overflow-hidden animate-in fade-in zoom-in duration-200 origin-top-right">
+                                    <div className="p-1">
+                                        <Link 
+                                            to={`/product/edit/${product.id}`}
+                                            className="flex items-center gap-2 px-4 py-3 text-slate-300 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors w-full text-left"
+                                            onClick={() => setShowMenu(false)}
+                                        >
+                                            <Edit size={16} />
+                                            <span>Edit Product</span>
+                                        </Link>
+                                        
+                                        <button 
+                                            onClick={() => {
+                                                setShowMenu(false);
+                                                setShowDeleteModal(true);
+                                            }}
+                                            className="flex items-center gap-2 px-4 py-3 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors w-full text-left"
+                                        >
+                                            <Trash2 size={16} />
+                                            <span>Delete Product</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                {/* Phần Grid hiển thị nội dung bên dưới giữ nguyên */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-12">
-                    <div className="lg:col-span-5 space-y-6">
+                     {/* ... (Giữ nguyên nội dung bên trong grid) ... */}
+                     <div className="lg:col-span-5 space-y-6">
                         <div className="bg-[#1e293b] rounded-2xl border border-slate-700/50 p-2 shadow-xl shadow-black/20">
                             <div className="aspect-square w-full bg-slate-800 rounded-xl overflow-hidden relative flex items-center justify-center group">
                                 {product.image_url ? (
@@ -244,18 +296,7 @@ const ProductDetail = () => {
                             </div>
                         </div>
 
-                        {product.instructions && (
-                            <div className="bg-[#1e293b] rounded-2xl border border-slate-700/50 p-6 md:p-8">
-                                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                                    Usage Instructions
-                                </h3>
-                                <div className="prose prose-invert max-w-none text-slate-300 leading-relaxed bg-slate-900/50 p-4 rounded-xl border border-slate-700/50">
-                                    <p className="whitespace-pre-line">{product.instructions}</p>
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="bg-[#1e293b] rounded-2xl border border-slate-700/50 p-6">
+<div className="bg-[#1e293b] rounded-2xl border border-slate-700/50 p-6">
                             <h3 className="text-lg font-semibold text-white mb-4">Details</h3>
                             <div className="space-y-4">
                                 <div className="flex justify-between py-3 border-b border-slate-700/50">
@@ -290,9 +331,22 @@ const ProductDetail = () => {
                                 </div>
                             </div>
                         </div>
+
+                        {product.instructions && (
+                            <div className="bg-[#1e293b] rounded-2xl border border-slate-700/50 p-6 md:p-8">
+                                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                                    Usage Instructions
+                                </h3>
+                                <div className="prose prose-invert max-w-none text-slate-300 leading-relaxed bg-slate-900/50 p-4 rounded-xl border border-slate-700/50">
+                                    <p className="whitespace-pre-line">{product.instructions}</p>
+                                </div>
+                            </div>
+                        )}
+
                     </div>
                 </div>
 
+                {/* (Giữ nguyên phần relatedProducts và các Modal bên dưới) */}
                 {relatedProducts.length > 0 && (
                     <div className="border-t border-slate-800 pt-10">
                         <div className="flex items-center justify-between mb-6">
@@ -301,7 +355,7 @@ const ProductDetail = () => {
                                 View all <ArrowRight size={16} />
                             </Link>
                         </div>
-
+                        {/* ... (Phần hiển thị list related products giữ nguyên) ... */}
                         <div className="flex items-center gap-2">
                             <button onClick={() => scroll('left')} className="hidden md:flex p-2 text-slate-500 hover:text-white transition-colors bg-transparent border-none outline-none">
                                 <ChevronLeft size={40} strokeWidth={1.5} />
@@ -309,7 +363,6 @@ const ProductDetail = () => {
 
                             <div ref={relatedListRef} className="flex-1 flex gap-6 overflow-x-auto pb-4 scroll-smooth snap-x" style={{ msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
                                 <style>{`.flex-1::-webkit-scrollbar { display: none; }`}</style>
-
                                 {relatedProducts.map((item) => (
                                     <Link to={`/product/${item.id}`} key={item.id} className="group block flex-shrink-0 w-[280px] md:w-[320px] snap-start">
                                         <div className="bg-[#1e293b] rounded-xl overflow-hidden border border-slate-700/50 hover:border-indigo-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-indigo-500/10 h-full flex flex-col">
@@ -325,7 +378,6 @@ const ProductDetail = () => {
                                                     {formatCurrency(item.price)}
                                                 </div>
                                             </div>
-
                                             <div className="p-4 flex-1 flex flex-col">
                                                 <h3 className="text-white font-semibold line-clamp-1 group-hover:text-indigo-400 transition-colors">{item.name}</h3>
                                                 <p className="text-slate-500 text-xs mt-1 line-clamp-2 flex-1">{item.description || "No description"}</p>
@@ -343,9 +395,11 @@ const ProductDetail = () => {
                 )}
             </div>
 
+            {/* (Giữ nguyên Modal Download và Modal Delete) */}
             {showModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div 
+                     {/* ... Modal download content ... */}
+                     <div 
                         className="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity"
                         onClick={() => setShowModal(false)}
                     ></div>
