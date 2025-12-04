@@ -127,7 +127,7 @@ const ProductPage = () => {
 
     return (
         <div className="bg-[#0f172a] text-slate-200 font-sans overflow-hidden pt-15 px-4 md:px-24 ">
-            <div className="flex h-screen mb-12">
+            <div className="flex h-screen">
                 {/* === SIDEBAR === */}
                 <ProductSidebar sortList={sortList} sortOption={sortOption} tagListApplication={tagListApplication} selectedTags={selectedTags} tagListOS={tagListOS} handleSortClick={handleSortClick} clearAllFilters={clearAllFilters} handleTagClick={handleTagClick} />
 

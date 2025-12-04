@@ -18,7 +18,7 @@ import Setting from '../page/setting/Setting';
 import Community from '../page/community/CommunityPage';
 import UserProfile from '../page/profile/UserProfile';
 import PostDetail from '../page/community/PostDetail';
-import QandA from '../page/q&a/QandA';
+import ChatbotAIPage from '../page/chatbotAI/ChatbotAI';
 
 const routes = [
     {
@@ -102,9 +102,9 @@ const routes = [
     },
     // -----------------------------------------------------------
     {
-        path: "/q&a",
-        element: QandA, 
-        name: "Hỏi & Đáp",
+        path: "/chatbot-ai",
+        element: ChatbotAIPage, 
+        name: "Chatbot AI",
     },
         // -----------------------------------------------------------
     {

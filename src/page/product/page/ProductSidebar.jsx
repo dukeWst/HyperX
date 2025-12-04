@@ -47,7 +47,7 @@ const ProductSidebar = ({ sortList, sortOption, tagListApplication, selectedTags
                         </div>
                     </div>
 
-                    <div className="h-px bg-slate-800 my-4" /> {/* Đường kẻ ngăn cách */}
+                    <div className="bg-slate-800 my-4" /> {/* Đường kẻ ngăn cách */}
 
                     {/* Application Tags */}
                     <div>

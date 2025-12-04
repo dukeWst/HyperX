@@ -20,6 +20,11 @@ const CommentItem = memo(({ comment, allComments, currentUser, onDelete, onReply
     const commentRef = React.useRef(null);
     const [isHighlighted, setIsHighlighted] = useState(false);
 
+    // Định nghĩa biến paddingLeftValue (Khắc phục lỗi "is not defined")
+    const indentLevel = depth > 2 ? 2 : depth;
+    const paddingLeftValue = indentLevel * 36;
+    const childComments = allComments.filter(c => c.parent_id === comment.id);
+
     useEffect(() => {
         if (highlightId && String(comment.id) === String(highlightId)) {
             setTimeout(() => {
@@ -31,10 +36,6 @@ const CommentItem = memo(({ comment, allComments, currentUser, onDelete, onReply
             return () => clearTimeout(timer);
         }
     }, [highlightId, comment.id]);
-
-    const indentLevel = depth > 2 ? 2 : depth;
-    const paddingLeftValue = indentLevel * 36;
-    const childComments = allComments.filter(c => c.parent_id === comment.id);
 
     // Load Likes
     useEffect(() => {
@@ -61,6 +62,7 @@ const CommentItem = memo(({ comment, allComments, currentUser, onDelete, onReply
 
     // --- Logic Reply ---
     const handleToggleReply = () => {
+        if (!currentUser) return alert("Please log in.");
         if (!showReplyInput) {
             const name = comment.raw_user_meta_data?.full_name || comment.email?.split('@')[0] || "User";
             setReplyContent(`@${name} `);
@@ -87,7 +89,7 @@ const CommentItem = memo(({ comment, allComments, currentUser, onDelete, onReply
     return (
         <div className="flex flex-col" ref={commentRef}>
             <div 
-                className={`flex gap-3 group relative mt-3 p-2 rounded-xl transition-all duration-1000 ease-in-out
+                className={`flex gap-3 group relative p-2 rounded-xl transition-all duration-1000 ease-in-out
                     ${isHighlighted ? 'bg-indigo-500/20 ring-1 ring-indigo-500' : ''} 
                 `}
                 style={{ marginLeft: `${paddingLeftValue}px` }}
@@ -121,36 +123,56 @@ const CommentItem = memo(({ comment, allComments, currentUser, onDelete, onReply
                         <button onClick={handleLikeComment} className={`text-xs font-semibold flex items-center gap-1 ${isLiked ? 'text-pink-500' : 'text-gray-400 hover:text-white'}`}><Heart size={12} fill={isLiked ? "currentColor" : "none"} /> {likes > 0 && likes} Like</button>
                         <button onClick={handleToggleReply} className="text-xs font-semibold text-gray-400 hover:text-white flex items-center gap-1">Reply</button>
                     </div>
-                    {showReplyInput && (
-                        <div className="mt-2 flex gap-2 items-center animate-in fade-in slide-in-from-top-2 duration-200">
-                            <input type="text" autoFocus value={replyContent} onChange={(e) => setReplyContent(e.target.value)} className="flex-1 bg-gray-900 border border-gray-600 rounded-lg px-3 py-1.5 text-xs text-white" onKeyDown={(e) => e.key === 'Enter' && handleSendReply()}/>
-                            <button onClick={handleSendReply} className="p-1.5 bg-indigo-600 rounded-md text-white"><Send size={12} /></button>
+                    
+                    {/* KHU VỰC ĐÃ SỬA: Reply Input UI mới (Đồng bộ với PostItem input) */}
+                    {showReplyInput && currentUser && (
+                        <div className="mt-2 flex gap-3 items-start animate-in fade-in slide-in-from-top-2 duration-200">
+                            {/* Avatar của người reply */}
+                            <UserAvatar user={{ ...currentUser, id: currentUser.id }} size="sm" /> 
+                            
+                            <div className="flex-1 relative">
+                                <input 
+                                    type="text" 
+                                    autoFocus 
+                                    value={replyContent} 
+                                    onChange={(e) => setReplyContent(e.target.value)} 
+                                    placeholder={`Reply to ${comment.raw_user_meta_data?.full_name || "this comment"}...`}
+                                    // Áp dụng UI tương tự PostItem input
+                                    className="w-full bg-gray-800 border border-gray-600 rounded-full pl-4 pr-12 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500" 
+                                    onKeyDown={(e) => e.key === 'Enter' && handleSendReply()}
+                                    disabled={isSendingReply}
+                                />
+                                <button 
+                                    onClick={handleSendReply} 
+                                    disabled={!replyContent.trim() || isSendingReply} 
+                                    className="absolute right-1.5 top-1.5 p-1.5 bg-indigo-600 rounded-full text-white hover:bg-indigo-500 disabled:opacity-50"
+                                >
+                                    <Send size={16} />
+                                </button>
+                            </div>
                         </div>
                     )}
                 </div>
             </div>
             {childComments.map(child => (
                  <CommentItem 
-                    key={child.id} 
-                    comment={child} 
-                    allComments={allComments} 
-                    currentUser={currentUser} 
-                    onDelete={onDelete} 
-                    onReplySuccess={onReplySuccess} 
-                    depth={depth + 1} 
-                    highlightId={highlightId}
-                />
+                     key={child.id} 
+                     comment={child} 
+                     allComments={allComments} 
+                     currentUser={currentUser} 
+                     onDelete={onDelete} 
+                     onReplySuccess={onReplySuccess} 
+                     depth={depth + 1} 
+                     highlightId={highlightId}
+                 />
             ))}
         </div>
     );
 });
 
 // --- MAIN COMPONENT ---
-// Đã thay thế prop 'post' bằng 'initialPost' và sử dụng state 'postData' để re-render nội bộ.
 const PostItem = ({ post: initialPost, currentUser, onPostDeleted, onPostUpdated }) => {
-    const [postData, setPostData] = useState(initialPost); // State chứa data bài viết
-
-    // Cần đảm bảo các state liên quan đến post đều dùng postData
+    const [postData, setPostData] = useState(initialPost); 
     const [likes, setLikes] = useState(initialPost.like_count || 0); 
     const [isLiked, setIsLiked] = useState(false);
     const [comments, setComments] = useState([]);
@@ -158,6 +180,7 @@ const PostItem = ({ post: initialPost, currentUser, onPostDeleted, onPostUpdated
     const [showComments, setShowComments] = useState(false);
     const [newComment, setNewComment] = useState("");
     const [loadingComments, setLoadingComments] = useState(false);
+    const [isSendingComment, setIsSendingComment] = useState(false);
 
     // Modal & Menu States
     const [deleteCommentModalOpen, setDeleteCommentModalOpen] = useState(false);
@@ -168,7 +191,6 @@ const PostItem = ({ post: initialPost, currentUser, onPostDeleted, onPostUpdated
     const [isDeletingComment, setIsDeletingComment] = useState(false);
 
     const [isEditing, setIsEditing] = useState(false); 
-    // Khởi tạo editForm với data từ postData
     const [editForm, setEditForm] = useState({ title: postData.title, content: postData.content }); 
     const [isUpdatingPost, setIsUpdatingPost] = useState(false); 
 
@@ -204,18 +226,18 @@ const PostItem = ({ post: initialPost, currentUser, onPostDeleted, onPostUpdated
                 fetchCommentsData();
             }
         }
-    }, [highlightCommentId, postData.id]); // Đã sửa: post.id -> postData.id
+    }, [highlightCommentId, postData.id, comments, fetchCommentsData]); // Đã thêm comments vào dependencies
 
     const handleLike = useCallback(async () => {
         if (!currentUser) return alert("Please log in.");
         if (isLiked) {
             setLikes(p => p - 1); setIsLiked(false);
-            await supabase.from("post_likes").delete().eq("post_id", postData.id).eq("user_id", currentUser.id); // Đã sửa
+            await supabase.from("post_likes").delete().eq("post_id", postData.id).eq("user_id", currentUser.id); 
         } else {
             setLikes(p => p + 1); setIsLiked(true);
-            await supabase.from("post_likes").insert({ post_id: postData.id, user_id: currentUser.id }); // Đã sửa
+            await supabase.from("post_likes").insert({ post_id: postData.id, user_id: currentUser.id }); 
         }
-    }, [isLiked, currentUser, postData.id]); // Đã sửa
+    }, [isLiked, currentUser, postData.id]); 
 
     const toggleComments = useCallback(async () => {
         if (!showComments && comments.length === 0) {
@@ -227,9 +249,11 @@ const PostItem = ({ post: initialPost, currentUser, onPostDeleted, onPostUpdated
     const handleSendComment = useCallback(async () => {
         if (!currentUser) return alert("Please log in.");
         if (!newComment.trim()) return;
+        
+        setIsSendingComment(true); 
 
         const { data, error } = await supabase.from("post_comments").insert({ 
-            post_id: postData.id, user_id: currentUser.id, content: newComment, parent_id: null // Đã sửa
+            post_id: postData.id, user_id: currentUser.id, content: newComment, parent_id: null 
         }).select("*").single();
 
         if (!error && data) {
@@ -237,8 +261,12 @@ const PostItem = ({ post: initialPost, currentUser, onPostDeleted, onPostUpdated
             setComments(prev => [...prev, optimistic]);
             setNewComment("");
             setCommentCount(p => p + 1);
+        } else {
+             alert("Error sending comment: " + error?.message);
         }
-    }, [currentUser, newComment, postData.id]); // Đã sửa
+        
+        setIsSendingComment(false); 
+    }, [currentUser, newComment, postData.id]); 
 
     const handleReplySuccess = useCallback((newReply) => {
         setComments(prev => [...prev, newReply]);
@@ -264,10 +292,10 @@ const PostItem = ({ post: initialPost, currentUser, onPostDeleted, onPostUpdated
 
     const executeDeletePost = async () => {
         setIsDeletingPost(true);
-        const { error } = await supabase.from("community_posts").delete().eq("id", postData.id); // Đã sửa
+        const { error } = await supabase.from("community_posts").delete().eq("id", postData.id); 
         if (!error) {
             setDeletePostModalOpen(false);
-            if (onPostDeleted) onPostDeleted(postData.id); // Đã sửa
+            if (onPostDeleted) onPostDeleted(postData.id); 
         } else {
             alert("Error deleting post: " + error.message);
         }
@@ -284,25 +312,21 @@ const PostItem = ({ post: initialPost, currentUser, onPostDeleted, onPostUpdated
                 title: editForm.title, 
                 content: editForm.content,
             })
-            .eq("id", postData.id) // Đã sửa
+            .eq("id", postData.id) 
             .select("*"); 
 
         setIsUpdatingPost(false);
 
-        // Kiểm tra data có tồn tại và có ít nhất 1 phần tử hay không
         if (!error && data && data.length > 0) {
             const updatedPostData = data[0]; 
             
-            // CẬP NHẬT STATE postData để tự động re-render component này
             setPostData(prev => ({ 
                 ...prev, 
                 title: updatedPostData.title, 
                 content: updatedPostData.content, 
-                // updated_at được tự động cập nhật nếu có trigger trong DB
                 updated_at: updatedPostData.updated_at || prev.updated_at,
             }));
             
-            // Gọi prop onPostUpdated (nếu component cha có dùng)
             if (onPostUpdated) onPostUpdated(updatedPostData);
 
             setIsEditing(false);
@@ -388,8 +412,15 @@ const PostItem = ({ post: initialPost, currentUser, onPostDeleted, onPostUpdated
                                     placeholder="Write a comment..." 
                                     className="w-full bg-gray-800 border border-gray-600 rounded-full pl-4 pr-12 py-2.5 text-white text-sm focus:outline-none focus:border-indigo-500" 
                                     onKeyDown={(e) => e.key === 'Enter' && handleSendComment()} 
+                                    disabled={isSendingComment}
                                 />
-                                <button onClick={handleSendComment} disabled={!newComment.trim()} className="absolute right-1.5 top-1.5 p-1.5 bg-indigo-600 rounded-full text-white hover:bg-indigo-500 disabled:opacity-50"><Send size={16} /></button>
+                                <button 
+                                    onClick={handleSendComment} 
+                                    disabled={!newComment.trim() || isSendingComment} 
+                                    className="absolute right-1.5 top-1.5 p-1.5 bg-indigo-600 rounded-full text-white hover:bg-indigo-500 disabled:opacity-50"
+                                >
+                                    <Send size={16} />
+                                </button>
                             </div>
                         </div>
                     ) : (

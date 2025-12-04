@@ -17,7 +17,7 @@ const navigation = [
     { name: 'Product', href: 'product' },
     { name: 'Community', href: 'community' },
     { name: 'Docs', href: 'docs' },
-    { name: 'Q&A', href: 'q&a' },
+    { name: 'Chatbot AI', href: 'chatbot-ai' },
 ];
 
 const Header = ({ user }) => {

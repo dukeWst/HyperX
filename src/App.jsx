@@ -6,7 +6,6 @@ import Footer from './layouts/Footer';
 import { supabase } from './supabaseClient';
 import LazyLoading from './LazyLoading';
 import ScrollToTop from './ScrollTop';
-import AuthSignIn from './page/auth/AuthSignIn';
 
 // Bạn cần đảm bảo ProtectedRoutee được định nghĩa đúng cách 
 // và truyền prop user xuống cho component con.
@@ -24,8 +23,15 @@ const ProtectedRoutee = ({ element: Element, user, ...rest }) => {
 
 function AppRoutes({ user }) {
   const location = useLocation();
-  const hideHeaderPaths = ['/signin', '/signup', '/verify'];
+  
+  // Các path cần ẩn Header (Chủ yếu là Auth)
+  const hideHeaderPaths = ['/signin', '/signup', '/verify', '/auth/callback'];
+  
+  // Các path cần ẩn Footer 
+  const pathsToHideFooter = [...hideHeaderPaths, '/chatbot-ai','/community','/product'];
 
+  // Logic truyền user (đã sửa ở lần trước, giữ lại)
+  const pathsRequiringUserProp = ['/profile', '/profile/:id', '/setting', '/chatbot-ai']; 
   return (
     <>
       <ScrollToTop />
@@ -34,11 +40,15 @@ function AppRoutes({ user }) {
       <Suspense fallback={<LazyLoading />}>
         <Routes>
           {routes.map((route, index) => {
+            const isPathRequiringUser = pathsRequiringUserProp.some(p => {
+              const baseRoute = p.split('/:')[0];
+              return route.path.startsWith(baseRoute);
+            });
+
             const ElementComponent = route.private ? (
               <ProtectedRoutee element={route.element} user={user} />
             ) : (
-              // SỬA ĐOẠN NÀY: Kiểm tra cả '/profile' VÀ '/setting'
-              ['/profile', '/setting'].includes(route.path) 
+              isPathRequiringUser 
                 ? <route.element user={user} /> 
                 : <route.element />
             );
@@ -48,7 +58,8 @@ function AppRoutes({ user }) {
         </Routes>
       </Suspense>
 
-      {!hideHeaderPaths.includes(location.pathname) && <Footer />}
+      {/* FOOTER: Chỉ render nếu đường dẫn không nằm trong pathsToHideFooter */}
+      {!pathsToHideFooter.includes(location.pathname) && <Footer />}
     </>
   );
 }
