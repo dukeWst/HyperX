@@ -1,144 +1,121 @@
-# GoTrans - Nền Tảng Vận Tải & Cộng Đồng Thông Minh
+# HyperX - Cộng Đồng Công Nghệ & Kho Ứng Dụng Đa Nền Tảng
 
-![Banner Dự Án](https://via.placeholder.com/1200x400?text=GoTrans+Platform+Banner)
+**HyperX** là nền tảng "All-in-One" dành cho những người yêu công nghệ. Chúng tôi kết hợp sức mạnh của một **Mạng xã hội công nghệ** sôi động với một **Kho ứng dụng & Game** đa nền tảng, nơi các nhà phát triển có thể chia sẻ sản phẩm của mình tới hàng triệu người dùng trên Windows, macOS và Linux.
 
-**GoTrans** là một nền tảng web hiện đại được xây dựng để kết nối cộng đồng vận tải, cung cấp các công cụ hỗ trợ thông minh và trải nghiệm người dùng tối ưu. Dự án sử dụng các công nghệ mới nhất như React 19, Vite, TailwindCSS v4 và Supabase.
+Dự án được xây dựng với trải nghiệm người dùng tối ưu, giao diện Dark Mode hiện đại và hiệu năng vượt trội nhờ các công nghệ mới nhất: **React 19**, **Vite**, **TailwindCSS v4** và **Supabase**.
 
 ---
 
-## 🌟 Tính Năng Nổi Bật
+## 🌟 Tính Năng Cốt Lõi
 
-### 1. 🔐 Hệ Thống Xác Thực & Người Dùng
+### 1. � Cộng Đồng Công Nghệ (Tech Community)
 
-- **Đăng ký / Đăng nhập**: Tích hợp bảo mật với Supabase Auth.
-- **Xác thực Email**: Quy trình verify tài khoản chặt chẽ.
-- **Hồ sơ cá nhân**: Trang Profile cho phép người dùng cập nhật thông tin và quản lý hoạt động.
+Nơi kết nối đam mê, chia sẻ kiến thức và thảo luận về mọi xu hướng công nghệ mới nhất.
 
-### 2. 🤖 Trợ Lý Ảo AI (Chatbot)
+- **Bảng tin (Newsfeed)**: Cập nhật bài viết, thủ thuật, tin tức công nghệ từ cộng đồng.
+- **Thảo luận & Tương tác**: Hệ thống bình luận, like và chia sẻ kiến thức chuyên sâu.
+- **Kết nối chuyên gia**: Giao lưu với các lập trình viên và người đam mê công nghệ khác.
 
-- Tích hợp Chatbot thông minh hỗ trợ giải đáp thắc mắc người dùng 24/7.
-- Giao diện chat thân thiện, phản hồi nhanh chóng.
+### 2. 🎮 Kho Ứng Dụng & Game (App Store)
 
-### 3. 👥 Cộng Đồng & Mạng Xã Hội
+Hệ thống phân phối phần mềm chuyên nghiệp, hỗ trợ đầy đủ các hệ điều hành phổ biến.
 
-- **Bảng tin (Community Feed)**: Nơi chia sẻ kiến thức, kinh nghiệm và câu chuyện nghề nghiệp.
-- **Tương tác**: Tính năng xem chi tiết bài viết, bình luận và thảo luận.
+- **Đa Nền Tảng**: Tìm kiếm và tải xuống ứng dụng tương thích chính xác với OS của bạn:
+  - 🪟 **Windows**: `.exe`, `.msi`, `.zip`
+  - 🍎 **macOS**: `.dmg`, `.pkg`, `.app`
+  - 🐧 **Linux**: `.deb`, `.rpm`, `.AppImage`
+- **Dành Cho Nhà Phát Triển**:
+  - Upload và quản lý phiên bản phần mềm dễ dàng (`/create-product`).
+  - Hỗ trợ file binary trực tiếp qua hệ thống lưu trữ đám mây.
+  - Cài đặt giá bán hoặc phát hành miễn phí.
+- **Bộ Lọc Thông Minh**: Tìm kiếm nhanh theo loại (Software/Game) hoặc Hệ điều hành.
 
-### 4. 📦 Hệ Sinh Thái Sản Phẩm
+### 3. 🤖 Trợ Lý AI Thông Minh
 
-- **Listing Sản phẩm**: Hiển thị danh sách sản phẩm/dịch vụ trực quan.
-- **Quản lý**: Chức năng thêm mới (`/create-product`), chỉnh sửa (`/product/edit`) và xem chi tiết sản phẩm.
+- Tích hợp Chatbot AI hỗ trợ giải đáp thắc mắc về cài đặt phần mềm, lỗi kỹ thuật hoặc tìm kiếm nội dung trên nền tảng 24/7.
 
-### 5. ✨ Trải Nghiệm Người Dùng (UX/UI)
+### 4. 🔐 Hệ Thống Tài Khoản Bảo Mật
 
-- **Giao diện Dark Mode**: Thiết kế hiện đại, dịu mắt, mang phong cách "Cinematic" với background tối.
-- **Hiệu ứng mượt mà**:
-  - `LazyLoading` thông minh với độ trễ tối thiểu giúp trải nghiệm tải trang tự nhiên.
-  - `FadeInOnScroll`: Hiệu ứng xuất hiện khi cuộn trang.
-  - `ScrollToTop`: Điều hướng dễ dàng.
+- Xác thực an toàn qua Email/Password.
+- Trang cá nhân (`Profile`) hiển thị các ứng dụng đã đăng tải và bài viết đã chia sẻ.
 
 ---
 
 ## 🛠️ Công Nghệ Sử Dụng
 
-Dự án được xây dựng trên nền tảng các công nghệ tiên tiến nhất hiện nay:
+HyperX sử dụng tech stack hiện đại nhất để đảm bảo hiệu năng và khả năng mở rộng:
 
-| Lĩnh Vực          | Công Nghệ                                | Phiên Bản |
-| :---------------- | :--------------------------------------- | :-------- |
-| **Core**          | [React](https://react.dev/)              | ^19.2.0   |
-| **Build Tool**    | [Vite](https://vitejs.dev/)              | ^6.0.0    |
-| **Styling**       | [TailwindCSS](https://tailwindcss.com/)  | v4.1.17   |
-| **Icons**         | [Lucide React](https://lucide.dev/)      | ^0.555.0  |
-| **UI Components** | [Headless UI](https://headlessui.com/)   | ^2.2.9    |
-| **Routing**       | [React Router](https://reactrouter.com/) | v7.9.6    |
-| **Backend / DB**  | [Supabase](https://supabase.com/)        | ^2.84.0   |
+| Hạng Mục     | Công Nghệ                                   | Mô Tả                                                          |
+| :----------- | :------------------------------------------ | :------------------------------------------------------------- |
+| **Frontend** | [React 19](https://react.dev/)              | Library giao diện người dùng mới nhất.                         |
+| **Tooling**  | [Vite](https://vitejs.dev/)                 | Build tool siêu tốc.                                           |
+| **Styling**  | [TailwindCSS v4](https://tailwindcss.com/)  | Styling engine mạnh mẽ, chưa chính thức nhưng đã được áp dụng. |
+| **UI Kit**   | [Headless UI](https://headlessui.com/)      | Component logic không style, tùy biến tối đa.                  |
+| **Backend**  | [Supabase](https://supabase.com/)           | BaaS cung cấp Auth, Database PostgreSQL và Storage.            |
+| **Routing**  | [React Router v7](https://reactrouter.com/) | Quản lý luồng trang ứng dụng.                                  |
 
 ---
 
-## 🚀 Cài Đặt & Hướng Dẫn Chạy
+## 🚀 Hướng Dẫn Cài Đặt (Local Development)
 
-Để chạy dự án trên máy cục bộ, hãy làm theo các bước sau:
+Để tham gia phát triển hoặc chạy thử HyperX trên máy của bạn:
 
-### 1. Clone dự án
+### 1. Clone Source Code
 
 ```bash
-git clone https://github.com/username/project-name.git
-cd project-name
+git clone https://github.com/username/hyperx.git
+cd hyperx
 ```
 
-### 2. Cài đặt dependencies
+### 2. Cài Đặt Thư Viện
 
 ```bash
 npm install
 ```
 
-### 3. Cấu hình môi trường
+### 3. Cấu Hình Biến Môi Trường
 
-Tạo file `.env` tại thư mục gốc và thêm các khóa API của Supabase:
+Tạo file `.env` ở thư mục gốc và điền thông tin Supabase của bạn (cần thiết để tính năng Upload File hoạt động):
 
 ```env
-VITE_SUPABASE_URL=your_supabase_project_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+VITE_SUPABASE_URL=https://your-project-id.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-### 4. Chạy dự án (Development)
+### 4. Khởi Chạy
 
 ```bash
 npm run dev
 ```
 
-Truy cập `http://localhost:5173` để xem kết quả.
-
-### 5. Build cho Production
-
-```bash
-npm run build
-```
+Truy cập `http://localhost:5173` và trải nghiệm!
 
 ---
 
-## 📂 Cấu Trúc Thư Mục
+## 📂 Cấu Trúc Dự Án
 
 ```plaintext
 src/
-├── assets/          # Tài nguyên tĩnh (ảnh, icons)
-├── enhancements/    # Các component hiệu ứng (LazyLoading, ScrollToTop...)
-├── layouts/         # Layout chung (Header, Footer)
-├── page/            # Các trang chính của ứng dụng
-│   ├── auth/        # Authentication (SignIn, SignUp...)
-│   ├── chatbotAI/   # Trang Chatbot
-│   ├── community/   # Trang Cộng đồng
-│   ├── Home/        # Trang chủ & các section
-│   ├── product/     # Trang Sản phẩm
-│   ├── profile/     # Trang Cá nhân
-│   └── ...
-├── routes/          # Cấu hình routing & Supabase Client
-├── App.jsx          # Component gốc
-└── main.jsx         # Entry point
+├── page/
+│   ├── community/   # Giao diện Mạng xã hội & Bài viết
+│   ├── product/     # Giao diện Store, Upload & Download
+│   │   ├── page/Product.jsx      # Danh sách ứng dụng
+│   │   └── page/NewProduct.jsx   # Form upload file đa nền tảng
+│   ├── chatbotAI/   # Trợ lý ảo
+│   └── auth/        # Các trang đăng nhập/đăng ký
+├── components/      # (Các component nhỏ lẻ nếu có)
+└── routes/          # Cấu hình đường dẫn
 ```
 
 ---
 
-## 📸 Hình Ảnh Minh Họa
+## 📞 Liên Hệ & Hỗ Trợ
 
-### Trang Chủ
+Nếu bạn là nhà phát triển muốn hợp tác hoặc người dùng cần hỗ trợ:
 
-![Home Page Screenshot](https://via.placeholder.com/800x400?text=Home+Page+Preview)
-
-### Giao Diện Chatbot
-
-![Chatbot Screenshot](https://via.placeholder.com/800x400?text=Chatbot+Interface)
-
-### Trang Cộng Đồng
-
-![Community Screenshot](https://via.placeholder.com/800x400?text=Community+Feed)
+- **Email**: duke.nd.wst@gmail.com
+- **Support Page**: `/support`
 
 ---
 
-## 📞 Hỗ Trợ
-
-Nếu bạn gặp vấn đề hoặc có câu hỏi, vui lòng truy cập trang `/support` hoặc liên hệ qua email support@gotrans.com.
-
----
-
-_© 2025 GoTrans Platform. All rights reserved._
+_© 2025 HyperX Platform. Kiến tạo tương lai kết nối số._
