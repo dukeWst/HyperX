@@ -1,64 +1,66 @@
-# HyperX - Cộng Đồng Công Nghệ & Kho Ứng Dụng Đa Nền Tảng
+# HyperX - Tech Community & Multi-Platform App Store
 
-**HyperX** là nền tảng "All-in-One" dành cho những người yêu công nghệ. Chúng tôi kết hợp sức mạnh của một **Mạng xã hội công nghệ** sôi động với một **Kho ứng dụng & Game** đa nền tảng, nơi các nhà phát triển có thể chia sẻ sản phẩm của mình tới hàng triệu người dùng trên Windows, macOS và Linux.
+> An all-in-one platform combining a Tech Community and Multi-Platform App Store, connecting developers and users to share knowledge and distribute software across Windows, macOS, and Linux.
 
-Dự án được xây dựng với trải nghiệm người dùng tối ưu, giao diện Dark Mode hiện đại và hiệu năng vượt trội nhờ các công nghệ mới nhất: **React 19**, **Vite**, **TailwindCSS v4** và **Supabase**.
+**HyperX** is an "All-in-One" platform for tech enthusiasts. We combine the power of a vibrant **Tech Social Network** with a multi-platform **App & Game Store**, where developers can share their products with millions of users on Windows, macOS, and Linux.
+
+The project is built for optimal user experience, featuring a modern Dark Mode interface and superior performance using the latest technologies: **React 19**, **Vite**, **TailwindCSS v4**, and **Supabase**.
 
 ---
 
-## 🌟 Tính Năng Cốt Lõi
+## 🌟 Key Features
 
-### 1. � Cộng Đồng Công Nghệ (Tech Community)
+### 1. 💬 Tech Community
 
-Nơi kết nối đam mê, chia sẻ kiến thức và thảo luận về mọi xu hướng công nghệ mới nhất.
+A place to connect passions, share knowledge, and discuss the latest tech trends.
 
-- **Bảng tin (Newsfeed)**: Cập nhật bài viết, thủ thuật, tin tức công nghệ từ cộng đồng.
-- **Thảo luận & Tương tác**: Hệ thống bình luận, like và chia sẻ kiến thức chuyên sâu.
-- **Kết nối chuyên gia**: Giao lưu với các lập trình viên và người đam mê công nghệ khác.
+- **Newsfeed**: Update articles, tips, and tech news from the community.
+- **Discussion & Interaction**: Comment system, likes, and deep knowledge sharing.
+- **Connect with Experts**: Network with developers and other tech enthusiasts.
 
-### 2. 🎮 Kho Ứng Dụng & Game (App Store)
+### 2. 🎮 App & Game Store
 
-Hệ thống phân phối phần mềm chuyên nghiệp, hỗ trợ đầy đủ các hệ điều hành phổ biến.
+A professional software distribution system supporting all popular operating systems.
 
-- **Đa Nền Tảng**: Tìm kiếm và tải xuống ứng dụng tương thích chính xác với OS của bạn:
+- **Multi-Platform**: Search and download applications compatible exactly with your OS:
   - 🪟 **Windows**: `.exe`, `.msi`, `.zip`
   - 🍎 **macOS**: `.dmg`, `.pkg`, `.app`
   - 🐧 **Linux**: `.deb`, `.rpm`, `.AppImage`
-- **Dành Cho Nhà Phát Triển**:
-  - Upload và quản lý phiên bản phần mềm dễ dàng (`/create-product`).
-  - Hỗ trợ file binary trực tiếp qua hệ thống lưu trữ đám mây.
-  - Cài đặt giá bán hoặc phát hành miễn phí.
-- **Bộ Lọc Thông Minh**: Tìm kiếm nhanh theo loại (Software/Game) hoặc Hệ điều hành.
+- **For Developers**:
+  - Easily upload and manage software versions (`/create-product`).
+  - Direct binary file support via cloud storage.
+  - Set pricing or release for free.
+- **Smart Filters**: Quick search by type (Software/Game) or Operating System.
 
-### 3. 🤖 Trợ Lý AI Thông Minh
+### 3. 🤖 Smart AI Assistant
 
-- Tích hợp Chatbot AI hỗ trợ giải đáp thắc mắc về cài đặt phần mềm, lỗi kỹ thuật hoặc tìm kiếm nội dung trên nền tảng 24/7.
+- Integrated AI Chatbot to support queries about software installation, technical errors, or content search on the platform 24/7.
 
-### 4. 🔐 Hệ Thống Tài Khoản Bảo Mật
+### 4. 🔐 Secure Account System
 
-- Xác thực an toàn qua Email/Password.
-- Trang cá nhân (`Profile`) hiển thị các ứng dụng đã đăng tải và bài viết đã chia sẻ.
-
----
-
-## 🛠️ Công Nghệ Sử Dụng
-
-HyperX sử dụng tech stack hiện đại nhất để đảm bảo hiệu năng và khả năng mở rộng:
-
-| Hạng Mục     | Công Nghệ                                   | Mô Tả                                                          |
-| :----------- | :------------------------------------------ | :------------------------------------------------------------- |
-| **Frontend** | [React 19](https://react.dev/)              | Library giao diện người dùng mới nhất.                         |
-| **Tooling**  | [Vite](https://vitejs.dev/)                 | Build tool siêu tốc.                                           |
-| **Styling**  | [TailwindCSS v4](https://tailwindcss.com/)  | Styling engine mạnh mẽ, chưa chính thức nhưng đã được áp dụng. |
-| **UI Kit**   | [Headless UI](https://headlessui.com/)      | Component logic không style, tùy biến tối đa.                  |
-| **Backend**  | [Supabase](https://supabase.com/)           | BaaS cung cấp Auth, Database PostgreSQL và Storage.            |
-| **Routing**  | [React Router v7](https://reactrouter.com/) | Quản lý luồng trang ứng dụng.                                  |
+- Secure authentication via Email/Password.
+- Personal Page (`Profile`) displaying uploaded apps and shared posts.
 
 ---
 
-## 🚀 Hướng Dẫn Cài Đặt (Local Development)
+## 🛠️ Technology Stack
 
-Để tham gia phát triển hoặc chạy thử HyperX trên máy của bạn:
+HyperX uses the most modern tech stack to ensure performance and scalability:
+
+| Category     | Technology                                  | Description                                            |
+| :----------- | :------------------------------------------ | :----------------------------------------------------- |
+| **Frontend** | [React 19](https://react.dev/)              | The latest UI library.                                 |
+| **Tooling**  | [Vite](https://vitejs.dev/)                 | Blazing fast build tool.                               |
+| **Styling**  | [TailwindCSS v4](https://tailwindcss.com/)  | Powerful styling engine (v4 preview).                  |
+| **UI Kit**   | [Headless UI](https://headlessui.com/)      | Unstyled, fully accessible UI components.              |
+| **Backend**  | [Supabase](https://supabase.com/)           | BaaS providing Auth, PostgreSQL Database, and Storage. |
+| **Routing**  | [React Router v7](https://reactrouter.com/) | Application routing management.                        |
+
+---
+
+## 🚀 Installation Guide (Local Development)
+
+To contribute or run HyperX locally on your machine:
 
 ### 1. Clone Source Code
 
@@ -67,55 +69,55 @@ git clone https://github.com/username/hyperx.git
 cd hyperx
 ```
 
-### 2. Cài Đặt Thư Viện
+### 2. Install Dependencies
 
 ```bash
 npm install
 ```
 
-### 3. Cấu Hình Biến Môi Trường
+### 3. Configure Environment Variables
 
-Tạo file `.env` ở thư mục gốc và điền thông tin Supabase của bạn (cần thiết để tính năng Upload File hoạt động):
+Create a `.env` file in the root directory and fill in your Supabase credentials (required for File Upload features):
 
 ```env
 VITE_SUPABASE_URL=https://your-project-id.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-### 4. Khởi Chạy
+### 4. Start the App
 
 ```bash
 npm run dev
 ```
 
-Truy cập `http://localhost:5173` và trải nghiệm!
+Visit `http://localhost:5173` and experience it!
 
 ---
 
-## 📂 Cấu Trúc Dự Án
+## 📂 Project Structure
 
 ```plaintext
 src/
 ├── page/
-│   ├── community/   # Giao diện Mạng xã hội & Bài viết
-│   ├── product/     # Giao diện Store, Upload & Download
-│   │   ├── page/Product.jsx      # Danh sách ứng dụng
-│   │   └── page/NewProduct.jsx   # Form upload file đa nền tảng
-│   ├── chatbotAI/   # Trợ lý ảo
-│   └── auth/        # Các trang đăng nhập/đăng ký
-├── components/      # (Các component nhỏ lẻ nếu có)
-└── routes/          # Cấu hình đường dẫn
+│   ├── community/   # Social Network & Post Interfaces
+│   ├── product/     # Store, Upload & Download Interfaces
+│   │   ├── page/Product.jsx      # App List
+│   │   └── page/NewProduct.jsx   # Multi-OS Upload Form
+│   ├── chatbotAI/   # AI Assistant
+│   └── auth/        # Login/Register Pages
+├── components/      # (Shared components)
+└── routes/          # Route Configuration
 ```
 
 ---
 
-## 📞 Liên Hệ & Hỗ Trợ
+## 📞 Contact & Support
 
-Nếu bạn là nhà phát triển muốn hợp tác hoặc người dùng cần hỗ trợ:
+If you are a developer looking to collaborate or a user needing support:
 
 - **Email**: duke.nd.wst@gmail.com
 - **Support Page**: `/support`
 
 ---
 
-_© 2025 HyperX Platform. Kiến tạo tương lai kết nối số._
+_© 2025 HyperX Platform. Architecting the future of digital connection._
