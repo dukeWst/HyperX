@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, Search, ArrowRight, Menu, X, ChevronRight, Hash } from 'lucide-react';
+import { BookOpen, Search, ArrowRight, Menu, X, ChevronRight, Hash, Code } from 'lucide-react';
 
-// --- MOCK DATA (Giữ nguyên nội dung của bạn) ---
+// --- MOCK DATA (Giữ nguyên nội dung, chỉ sửa UI) ---
 const mockDocsContent = {
     "intro": {
         title: "Introduction to the HyperX Ecosystem",
@@ -65,7 +65,7 @@ const navigationStructure = [
     },
 ];
 
-// --- COMPONENT: DocsSidebar (UI đã nâng cấp) ---
+// --- COMPONENT: DocsSidebar (UI đã nâng cấp - Cyan Theme) ---
 const DocsSidebar = ({ activeDoc, setActiveDoc, isMobileOpen, setIsMobileOpen }) => {
     return (
         <aside className={`
@@ -84,7 +84,7 @@ const DocsSidebar = ({ activeDoc, setActiveDoc, isMobileOpen, setIsMobileOpen })
                     {navigationStructure.map((section) => (
                         <div key={section.id}>
                             <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-gray-500 mb-3 px-3">
-                                <Hash size={12} /> {section.title}
+                                <Hash size={12} className="text-cyan-500" /> {section.title}
                             </h3>
                             <ul className="space-y-1">
                                 {section.children.map((item) => (
@@ -97,7 +97,7 @@ const DocsSidebar = ({ activeDoc, setActiveDoc, isMobileOpen, setIsMobileOpen })
                                             className={`
                                                 w-full text-left px-3 py-2 rounded-lg cursor-pointer transition-all duration-200 text-sm font-medium flex items-center justify-between group
                                                 ${activeDoc === item.id 
-                                                    ? "bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.1)]" 
+                                                    ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-[0_0_15px_rgba(34,211,238,0.1)]" 
                                                     : "text-gray-400 hover:text-white hover:bg-white/5"
                                                 }
                                             `}
@@ -153,14 +153,12 @@ const DocsPage = () => {
     };
 
     return (
-        // MASTER CONTAINER: Màu nền đen sâu đồng bộ #05050A
         <div className="min-h-screen bg-[#05050A] text-gray-300 font-sans pt-16 relative isolate overflow-hidden">
             
-            {/* --- AMBIENT LIGHTING --- */}
-            {/* Ánh sáng tím mờ ở góc phải dưới */}
-            <div className="fixed bottom-0 right-0 -z-10 w-[40rem] h-[40rem] bg-purple-900/10 rounded-full blur-[120px] pointer-events-none"></div>
-             {/* Ánh sáng xanh mờ ở góc trái trên */}
-            <div className="fixed top-20 left-0 -z-10 w-[30rem] h-[30rem] bg-indigo-900/10 rounded-full blur-[100px] pointer-events-none"></div>
+            {/* --- AMBIENT LIGHTING (Cyan/Blue) --- */}
+            <div className="fixed inset-0 z-0 pointer-events-none opacity-[0.03]" style={{backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`}}></div>
+            <div className="fixed bottom-0 right-0 -z-10 w-[40rem] h-[40rem] bg-blue-900/10 rounded-full blur-[120px] pointer-events-none"></div>
+            <div className="fixed top-20 left-0 -z-10 w-[30rem] h-[30rem] bg-cyan-900/10 rounded-full blur-[100px] pointer-events-none"></div>
 
             <div className="flex max-w-[90rem] mx-auto">
                 
@@ -185,17 +183,17 @@ const DocsPage = () => {
                                 <Menu size={20} /> <span className="text-sm font-medium">Menu</span>
                             </button>
                             
-                            {/* Search Bar Style mới */}
+                            {/* Search Bar - Cyan Focus */}
                             <form onSubmit={handleSearch} className="relative w-full md:w-96 group">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <Search className="h-4 w-4 text-gray-500 group-focus-within:text-indigo-400 transition-colors" />
+                                    <Search className="h-4 w-4 text-gray-500 group-focus-within:text-cyan-400 transition-colors" />
                                 </div>
                                 <input 
                                     type="text" 
                                     placeholder="Search documentation..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="block w-full pl-10 pr-3 py-2.5 border border-white/10 rounded-xl leading-5 bg-white/5 text-gray-300 placeholder-gray-500 focus:outline-none focus:bg-white/10 focus:ring-1 focus:ring-indigo-500/50 focus:border-indigo-500/50 sm:text-sm transition-all shadow-lg shadow-black/20"
+                                    className="block w-full pl-10 pr-3 py-2.5 border border-white/10 rounded-xl leading-5 bg-white/5 text-gray-300 placeholder-gray-500 focus:outline-none focus:bg-white/10 focus:ring-1 focus:ring-cyan-500/50 focus:border-cyan-500/50 sm:text-sm transition-all shadow-lg shadow-black/20"
                                 />
                                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                                     <span className="text-gray-600 text-xs border border-gray-700 rounded px-1.5 py-0.5">/</span>
@@ -212,17 +210,17 @@ const DocsPage = () => {
                             </div>
                         ) : (
                             <article className="animate-fade-in">
-                                {/* Badge category (Giả lập) */}
-                                <div className="inline-flex items-center rounded-full border border-indigo-500/30 bg-indigo-500/10 px-3 py-1 text-xs font-medium text-indigo-300 mb-6">
-                                    Documentation
+                                {/* Badge category */}
+                                <div className="inline-flex items-center rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 text-xs font-medium text-cyan-300 mb-6">
+                                    <BookOpen size={12} className="mr-1.5" /> Documentation
                                 </div>
                                 
                                 <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight mb-8">
                                     {filteredContent.title}
                                 </h1>
 
-                                {/* Nội dung văn bản - Custom Prose cho Dark Mode */}
-                                <div className="prose prose-invert prose-lg max-w-none text-gray-400 prose-headings:text-gray-200 prose-strong:text-white prose-code:text-indigo-300 prose-code:bg-indigo-500/10 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none">
+                                {/* Nội dung văn bản - Custom Prose for Dark Mode */}
+                                <div className="prose prose-invert prose-lg max-w-none text-gray-400 prose-headings:text-gray-200 prose-strong:text-white prose-a:text-cyan-400 prose-a:no-underline hover:prose-a:underline prose-code:text-cyan-300 prose-code:bg-cyan-500/10 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none">
                                     {filteredContent.content.split('\n').map((paragraph, idx) => (
                                         <p key={idx} className="mb-4 leading-relaxed">{paragraph}</p>
                                     ))}
@@ -237,10 +235,10 @@ const DocsPage = () => {
                                                 <div className="w-3 h-3 rounded-full bg-yellow-500/20 group-hover:bg-yellow-500/80 transition-colors"></div>
                                                 <div className="w-3 h-3 rounded-full bg-green-500/20 group-hover:bg-green-500/80 transition-colors"></div>
                                             </div>
-                                            <span className="text-xs text-gray-500 font-mono">example.js</span>
+                                            <span className="text-xs text-gray-500 font-mono flex items-center gap-1"><Code size={12}/> example.js</span>
                                         </div>
-                                        <div className="p-6 overflow-x-auto custom-scrollbar">
-                                            <pre className="text-sm font-mono leading-relaxed text-indigo-100">
+                                        <div className="p-6 overflow-x-auto custom-scrollbar bg-black/30">
+                                            <pre className="text-sm font-mono leading-relaxed text-cyan-100">
                                                 <code>{filteredContent.code}</code>
                                             </pre>
                                         </div>
@@ -255,8 +253,8 @@ const DocsPage = () => {
                                             className="group flex flex-col items-end text-right"
                                         >
                                             <span className="text-xs text-gray-500 uppercase tracking-wider mb-1">Next Article</span>
-                                            <span className="flex items-center gap-2 text-indigo-400 font-semibold group-hover:text-indigo-300 transition-colors text-lg">
-                                                {mockDocsContent[filteredContent.next].title.split(':')[0]} {/* Lấy phần title ngắn gọn */}
+                                            <span className="flex items-center gap-2 text-cyan-400 font-semibold group-hover:text-cyan-300 transition-colors text-lg">
+                                                {mockDocsContent[filteredContent.next].title.split(':')[0]} 
                                                 <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
                                             </span>
                                         </button>
