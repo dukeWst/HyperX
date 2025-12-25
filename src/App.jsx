@@ -1,93 +1,116 @@
-import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
-import routes from './routes/config';
 import { useEffect, useState, Suspense } from 'react';
+import { BrowserRouter as Router, Routes, Route, useLocation, matchPath } from 'react-router-dom';
+import { supabase } from './routes/supabaseClient';
+
+// Layouts & Components
 import Header from './layouts/Header';
 import Footer from './layouts/Footer';
-import { supabase } from './routes/supabaseClient'
 import LazyLoading from './page/enhancements/LazyLoading';
 import ScrollToTop from './page/enhancements/ScrollTop';
 
-// Bạn cần đảm bảo ProtectedRoutee được định nghĩa đúng cách 
-// và truyền prop user xuống cho component con.
-const ProtectedRoutee = ({ element: Element, user, ...rest }) => {
-  // Logic bảo vệ route, ví dụ:
-  if (!user) {
-    // Nếu chưa đăng nhập, chuyển hướng đến /signin
-    // Cần import Navigate từ react-router-dom
-    // return <Navigate to="/signin" replace />; 
-    return <Navigate to="/signin" replace />;
-  }
-  return <Element user={user} {...rest} />;
-};
+// Routes Config & Protection
+import routes from './routes/config'; // File config đã sửa có HomeWrapper
+import PrivateRoute from './routes/PrivateRoute'; // File PrivateRoute đã tạo ở bước trước
 
-
+// --- COMPONENT QUẢN LÝ ROUTES & LAYOUT ---
 function AppRoutes({ user }) {
   const location = useLocation();
-  
-  // Các path cần ẩn Header (Chủ yếu là Auth)
-  const hideHeaderPaths = ['/signin', '/signup', '/verify', '/auth/callback'];
-  
-  // Các path cần ẩn Footer 
-  const pathsToHideFooter = [...hideHeaderPaths, '/chatbot-ai','/community','/product','/docs', '/create-product','/edit-product/:id','/product/:id','/profile','/profile/:id','/setting'];
 
-  // Logic truyền user (đã sửa ở lần trước, giữ lại)
-  const pathsRequiringUserProp = ['/profile', '/profile/:id', '/setting', '/chatbot-ai']; 
+  // 1. Cải tiến logic ẩn Header (Dùng matchPath để chính xác hơn)
+  const hideHeaderOn = ['/signin', '/signup', '/verify', '/auth/callback',];
+  // Kiểm tra xem path hiện tại có khớp với bất kỳ pattern nào không
+  const showHeader = !hideHeaderOn.some(path => matchPath({ path, end: true }, location.pathname));
+
+  // 2. Cải tiến logic ẩn Footer
+  const hideFooterOn = [
+    ...hideHeaderOn,
+    '/chatbot-ai',
+    '/community',
+    '/product',
+    '/docs',
+    '/create-product',
+    '/product/edit/:id', // Đường dẫn động
+    '/product/:id',      // Đường dẫn động
+    '/profile',
+    '/profile/:id',
+    '/setting',
+    '/dashboard'      
+  ];
+  
+  const showFooter = !hideFooterOn.some(path => matchPath({ path, end: false }, location.pathname));
+
   return (
     <>
       <ScrollToTop />
-      {!hideHeaderPaths.includes(location.pathname) && <Header user={user} />}
+      
+      {/* Header nhận prop user để hiển thị Avatar/Tên */}
+      {showHeader && <Header user={user} />}
 
       <Suspense fallback={<LazyLoading />}>
         <Routes>
+          
+          {/* NHÓM 1: PUBLIC ROUTES (Bao gồm HomeWrapper, Signin, Signup...) */}
           {routes.map((route, index) => {
-            const isPathRequiringUser = pathsRequiringUserProp.some(p => {
-              const baseRoute = p.split('/:')[0];
-              return route.path.startsWith(baseRoute);
-            });
-
-            const ElementComponent = route.private ? (
-              <ProtectedRoutee element={route.element} user={user} />
-            ) : (
-              isPathRequiringUser 
-                ? <route.element user={user} /> 
-                : <route.element />
-            );
-
-            return <Route key={index} path={route.path} element={ElementComponent} />;
+            if (!route.private) {
+              return (
+                <Route 
+                  key={index} 
+                  path={route.path} 
+                  // Truyền user prop xuống để tương thích code cũ của bạn
+                  element={<route.element user={user} />} 
+                />
+              );
+            }
+            return null;
           })}
+
+          {/* NHÓM 2: PRIVATE ROUTES (Bảo vệ bởi PrivateRoute) */}
+          <Route element={<PrivateRoute />}>
+            {routes.map((route, index) => {
+              if (route.private) {
+                return (
+                  <Route 
+                    key={index} 
+                    path={route.path} 
+                    element={<route.element user={user} />} 
+                  />
+                );
+              }
+              return null;
+            })}
+          </Route>
+
         </Routes>
       </Suspense>
 
-      {/* FOOTER: Chỉ render nếu đường dẫn không nằm trong pathsToHideFooter */}
-      {!pathsToHideFooter.includes(location.pathname) && <Footer />}
+      {showFooter && <Footer />}
     </>
   );
 }
 
+// --- MAIN APP COMPONENT ---
 export default function App() {
   const [user, setUser] = useState(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   useEffect(() => {
-    // Chỉ lắng nghe thay đổi auth (Listener này sẽ bắn ra sự kiện đầu tiên
-    // để xác định trạng thái user ngay khi component mount, thay thế cho getSession)
-    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
-      // 1. Cập nhật user state
+    // Lấy session ngay lập tức khi load trang
+    supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user || null);
-
-      // 2. Đảm bảo tắt loading sau khi nhận được trạng thái auth đầu tiên
-      // (Ngay cả khi session là null, auth state đã được xác định xong)
       setIsAuthLoading(false);
     });
 
-    // Cleanup
+    // Lắng nghe sự thay đổi (Đăng nhập/Đăng xuất)
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null);
+      setIsAuthLoading(false);
+    });
+
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  // Nếu đang check auth (khi vừa reload), hiện Loading component
   if (isAuthLoading) {
-    // Sử dụng LazyLoading với status để thân thiện hơn
-    return <LazyLoading status="Checking user session..." />;
+    return <LazyLoading status="Checking session..." />;
   }
 
   return (

@@ -9,7 +9,7 @@ import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism"; // Giữ nguyên theme code tối
-import UserAvatar from '../../page/community/UserAvatar';
+import UserAvatar from '../../components/UserAvatar.jsx';
 import ChatInput from './ChatInput.jsx';
 
 // --- CONFIG --- (Giữ nguyên)

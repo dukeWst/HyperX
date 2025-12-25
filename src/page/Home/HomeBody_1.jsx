@@ -31,7 +31,7 @@ const HomeBody_1 = () => {
                 <div className="mt-10 flex items-center justify-center gap-x-6">
                     <Link
                         to="/community"
-                        className="rounded-full bg-indigo-600 px-8 py-3.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 hover:bg-indigo-500 hover:shadow-indigo-500/50 hover:-translate-y-0.5 transition-all duration-300"
+                        className="bg-indigo-600 px-8 py-3.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 hover:bg-indigo-500 hover:shadow-indigo-500/50 hover:-translate-y-0.5 transition-all duration-300"
                     >
                         Start Building Now
                     </Link>

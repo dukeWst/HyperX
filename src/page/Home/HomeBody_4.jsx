@@ -46,9 +46,9 @@ const HomeBody_4 = () => {
                     {/* Nút chính */}
                     <Link
                         to="/product"
-                        className="group relative rounded-full bg-white px-12 py-4 text-base font-bold text-gray-900 shadow-[0_0_40px_-10px_rgba(99,102,241,0.5)] hover:shadow-[0_0_60px_-15px_rgba(99,102,241,0.7)] hover:scale-105 transition-all duration-300"
+                        className="group relative bg-white px-10 py-4 text-base font-bold text-gray-900 shadow-[0_0_40px_-10px_rgba(99,102,241,0.5)] hover:shadow-[0_0_60px_-15px_rgba(99,102,241,0.7)] hover:scale-105 transition-all duration-300"
                     >
-                        <span className="absolute inset-0 rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 opacity-0 group-hover:opacity-10 transition-opacity" />
+                        <span className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 opacity-0 group-hover:opacity-10 transition-opacity" />
                         Get Started Free
                     </Link>
                     

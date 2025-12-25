@@ -35,16 +35,10 @@ const AuthSignIn = () => {
 
             if (error) {
                 setLoading(false);
-                let errorText = "Đã xảy ra lỗi trong quá trình đăng nhập.";
-
-                if (error.message.includes("Invalid login credentials")) {
-                    errorText = "Email hoặc mật khẩu không chính xác.";
-                } else if (error.message.includes("Email not confirmed")) {
-                    errorText = "Email chưa được xác nhận. Vui lòng kiểm tra email.";
-                } else {
-                    errorText = error.message;
-                }
-
+                let errorText = "Đã xảy ra lỗi.";
+                if (error.message.includes("Invalid login credentials")) errorText = "Email hoặc mật khẩu sai.";
+                else if (error.message.includes("Email not confirmed")) errorText = "Vui lòng xác thực email.";
+                else errorText = error.message;
                 setMessage({ type: "error", text: errorText });
                 return;
             }
@@ -52,24 +46,14 @@ const AuthSignIn = () => {
             if (data.user && !data.user.email_confirmed_at) {
                 setLoading(false);
                 await supabase.auth.signOut();
-                setTimeout(() => {
-                    navigate("/verify", {
-                        state: {
-                            email,
-                            message: "Please verify your email before signing in."
-                        }
-                    });
-                }, 1500);
+                setTimeout(() => navigate("/verify"), 1500);
                 return;
             }
 
             setLoading(false);
-            setMessage({ type: "success", text: `Đăng nhập thành công!` });
+            setMessage({ type: "success", text: `Chào mừng trở lại!` });
             setLoggingIn(true);
-
-            setTimeout(() => {
-                navigate("/");
-            }, 800);
+            setTimeout(() => navigate("/dashboard"), 800);
 
         } catch (e) {
             setLoading(false);
@@ -78,90 +62,140 @@ const AuthSignIn = () => {
     };
 
     return (
-        // BACKGROUND: #05050A + Ambient Light
-        <div className="relative isolate flex items-center justify-center min-h-screen px-4 sm:px-6 lg:px-8 bg-[#05050A] overflow-hidden">
-            {loggingIn && <LazyLoading status={'Logging in...'} />}
+        <div className="flex min-h-screen bg-[#09090b] text-white font-sans selection:bg-cyan-500/30">
+            {loggingIn && <LazyLoading status={'Authenticating...'} />}
 
-            {/* --- 1. NOISE TEXTURE (Tạo độ nhám cho nền) --- */}
-            <div className="fixed inset-0 z-0 pointer-events-none opacity-[0.04]" style={{backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`}}></div>
-
-            {/* --- 2. AMBIENT LIGHTS (Đốm sáng) --- */}
-            <div className="absolute top-[-10%] left-[-10%] w-[40rem] h-[40rem] bg-indigo-600/10 rounded-full blur-[100px] pointer-events-none"></div>
-            <div className="absolute bottom-[-10%] right-[-10%] w-[40rem] h-[40rem] bg-purple-600/10 rounded-full blur-[100px] pointer-events-none"></div>
-
-            {/* === MAIN CARD === */}
-            <div className="relative w-full max-w-md bg-[#0B0D14]/60 backdrop-blur-xl border border-white/10 rounded-3xl px-8 py-10 shadow-2xl z-10 sm:px-10">
+            {/* --- LEFT SIDE: FORM (Chiếm 2/5 ~ 40%) --- */}
+            {/* Thay đổi chính: lg:w-2/5 */}
+            <div className="flex flex-1 flex-col justify-center px-8 py-12 sm:px-12 lg:flex-none lg:w-2/5 lg:px-12 xl:px-16 z-20 bg-[#09090b] relative border-r border-white/5 shadow-2xl">
                 
-                {/* Header Logo/Title */}
-                <div className="text-center mb-8">
-                    <h2 className="text-3xl font-bold tracking-tight text-white">
-                        Welcome back
-                    </h2>
-                    <p className="mt-2 text-sm text-gray-400">
-                        Sign in to continue to <span className="font-semibold text-indigo-400">HyperX</span>
-                    </p>
+                {/* Decorative glow behind form */}
+                <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
+                     <div className="absolute top-[-10%] left-[-20%] w-[20rem] h-[20rem] bg-indigo-500/5 rounded-full blur-3xl"></div>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-5">
-                    <div>
-                        <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-1.5">
-                            Email address
-                        </label>
-                        <input
-                            id="email"
-                            name="email"
-                            type="email"
-                            required
-                            value={formData.email}
-                            onChange={handleChange}
-                            disabled={loading}
-                            className="block w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-gray-500 focus:border-indigo-500 focus:bg-[#0B0D14] focus:ring-1 focus:ring-indigo-500 transition-all outline-none sm:text-sm"
-                            placeholder="you@example.com"
-                        />
+                <div className="mx-auto w-full max-w-sm relative z-10">
+                    {/* Header */}
+                    <div className="mb-10">
+                        <h1 className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-white via-gray-200 to-gray-400 bg-clip-text text-transparent">
+                            Welcome back!
+                        </h1>
+                        <p className="mt-3 text-sm text-gray-200 font-light tracking-wide">
+                            ENTER THE SYSTEM
+                        </p>
                     </div>
 
-                    <div>
-                        <div className="flex justify-between items-center mb-1.5">
-                            <label htmlFor="password" className="block text-sm font-medium text-gray-300">
+                    <form onSubmit={handleSubmit} className="space-y-10">
+                        
+                        {/* INPUT 1: EMAIL */}
+                        <div className="relative group">
+                            <input
+                                id="email"
+                                name="email"
+                                type="email"
+                                required
+                                value={formData.email}
+                                onChange={handleChange}
+                                disabled={loading}
+                                className="peer block w-full border-b border-gray-600 bg-transparent py-3 px-0 text-white placeholder-transparent focus:border-cyan-400 focus:outline-none transition-colors duration-300"
+                                placeholder="Email"
+                            />
+                            <label
+                                htmlFor="email"
+                                className="absolute left-0 -top-3.5 text-xs text-gray-400 transition-all peer-placeholder-shown:top-3 peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-500 peer-focus:-top-3.5 peer-focus:text-xs peer-focus:text-cyan-400 cursor-text"
+                            >
+                                Email Address
+                            </label>
+                            {/* Glow effect on focus */}
+                            <div className="absolute bottom-0 left-0 h-[1px] w-0 bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.8)] transition-all duration-500 peer-focus:w-full"></div>
+                        </div>
+
+                        {/* INPUT 2: PASSWORD */}
+                        <div className="relative group">
+                            <input
+                                id="password"
+                                name="password"
+                                type="password"
+                                required
+                                value={formData.password}
+                                onChange={handleChange}
+                                disabled={loading}
+                                className="peer block w-full border-b border-gray-600 bg-transparent py-3 px-0 text-white placeholder-transparent focus:border-cyan-400 focus:outline-none transition-colors duration-300"
+                                placeholder="Password"
+                            />
+                            <label
+                                htmlFor="password"
+                                className="absolute left-0 -top-3.5 text-xs text-gray-400 transition-all peer-placeholder-shown:top-3 peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-500 peer-focus:-top-3.5 peer-focus:text-xs peer-focus:text-cyan-400 cursor-text"
+                            >
                                 Password
                             </label>
-                            <Link className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition-colors">
-                                Forgot password?
-                            </Link>
+                             {/* Glow effect on focus */}
+                             <div className="absolute bottom-0 left-0 h-[1px] w-0 bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.8)] transition-all duration-500 peer-focus:w-full"></div>
                         </div>
-                        <input
-                            id="password"
-                            name="password"
-                            type="password"
-                            required
-                            value={formData.password}
-                            onChange={handleChange}
-                            disabled={loading}
-                            className="block w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-gray-500 focus:border-indigo-500 focus:bg-[#0B0D14] focus:ring-1 focus:ring-indigo-500 transition-all outline-none sm:text-sm"
-                            placeholder="••••••••"
-                        />
+
+                        {/* Message Box */}
+                        {message && (
+                            <div className={`text-sm py-2 px-3 border-l-2 ${message.type === 'error' ? 'border-red-500 text-red-400 bg-red-500/5' : 'border-green-500 text-green-400 bg-green-500/5'} animate-pulse`}>
+                                {message.text}
+                            </div>
+                        )}
+
+                        {/* Action Buttons */}
+                        <div className="pt-2">
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="group relative w-full flex justify-center py-3.5 px-4 text-sm font-bold text-black bg-white transition-all hover:bg-cyan-400 hover:shadow-[0_0_20px_rgba(34,211,238,0.4)] disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
+                            >
+                                <span className="relative z-10 uppercase tracking-widest">
+                                    {loading ? "Processing..." : "Sign In"}
+                                </span>
+                            </button>
+                            
+                            <div className="mt-6 flex justify-between items-center text-xs text-gray-500 font-medium">
+                                <Link to="/signup" className="hover:text-cyan-400 transition-colors">
+                                    CREATE ACCOUNT
+                                </Link>
+                                <Link className="hover:text-cyan-400 transition-colors">
+                                    FORGOT PASSWORD?
+                                </Link>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            {/* --- RIGHT SIDE: COVER / ARTWORK (Tự động chiếm phần còn lại ~ 3/5) --- */}
+            {/* flex-1 sẽ lấy hết không gian còn lại sau khi Form lấy 2/5 */}
+            <div className="relative hidden w-0 flex-1 lg:block overflow-hidden bg-[#050505]">
+                
+                {/* Abstract Background Layers */}
+                <div className="absolute inset-0 w-full h-full bg-[#050505]">
+                    {/* 1. Gradient Orbs */}
+                    <div className="absolute top-[-20%] right-[-10%] w-[50vw] h-[50vw] bg-purple-900/20 rounded-full blur-[120px] mix-blend-screen animate-pulse"></div>
+                    <div className="absolute bottom-[-10%] left-[-10%] w-[40vw] h-[40vw] bg-cyan-900/20 rounded-full blur-[100px] mix-blend-screen"></div>
+
+                    {/* 2. Grid Pattern */}
+                    <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_at_center,black_40%,transparent_100%)]"></div>
+                </div>
+
+                {/* 3. Glass Card in Center */}
+                <div className="absolute inset-0 flex items-center justify-center p-20 z-10">
+                    <div className="relative w-full max-w-lg aspect-square">
+                        {/* Animated Border Ring */}
+                        <div className="absolute inset-0 rounded-full border border-white/5 animate-[spin_10s_linear_infinite]"></div>
+                        <div className="absolute inset-4 rounded-full border border-white/5 animate-[spin_15s_linear_infinite_reverse]"></div>
+                        
+                        {/* Glassmorphism content */}
+                        <div className="absolute inset-0 flex flex-col items-center justify-center backdrop-blur-sm">
+                            <h2 className="text-6xl lg:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-white/10 tracking-tighter drop-shadow-2xl">
+                                FUTURE
+                                <br />
+                                READY
+                            </h2>
+                            <div className="mt-4 h-1 w-24 bg-cyan-500/50 rounded-full shadow-[0_0_15px_rgba(6,182,212,0.5)]"></div>
+                        </div>
                     </div>
-
-                    {message && (
-                        <div className={`p-3 rounded-lg text-sm font-medium flex items-center justify-center animate-in fade-in slide-in-from-top-1 ${message.type === "error" ? "bg-red-500/10 text-red-400 border border-red-500/20" : "bg-green-500/10 text-green-400 border border-green-500/20"}`}>
-                            {message.text}
-                        </div>
-                    )}
-
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 py-3 font-semibold text-white shadow-lg shadow-indigo-500/20 hover:from-indigo-500 hover:to-indigo-400 hover:shadow-indigo-500/30 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {loading ? "Signing in..." : "Sign in"}
-                    </button>
-                </form>
-
-                <div className="mt-8 pt-6 border-t border-white/10 text-center text-sm text-gray-400">
-                    Don't have an account?{" "}
-                    <Link to="/signup" className="font-semibold text-indigo-400 hover:text-indigo-300 transition-colors">
-                        Create an account
-                    </Link>
                 </div>
             </div>
         </div>

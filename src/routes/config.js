@@ -8,6 +8,7 @@ import VerifyPage from '../page/auth/VerifyPage'
 import AuthCallback from '../page/auth/AuthCallback';
 import Product from '../page/product/page/Product';
 import NewProduct from '../page/product/page/NewProduct';
+const HomeWrapper = lazy(() => delayImport(() => import('../page/Home/HomeWrapper'), MINIMUM_LOAD_DELAY));
 
 // Import ProductDetail
 import ProductDetail from '../page/product/page/ProductDetail'; 
@@ -15,7 +16,7 @@ import ProductDetail from '../page/product/page/ProductDetail';
 import DocsPage from '../page/docs/Docs';
 import Setting from '../page/setting/Setting';
 import Community from '../page/community/CommunityPage';
-import UserProfile from '../page/profile/UserProfile';
+import UserProfile from '../page/profile/UserProfile'
 import PostDetail from '../page/community/PostDetail';
 import HelpAndSupport from '../page/help&support/HelpAndSupport';
 
@@ -48,17 +49,24 @@ const delayImport = (factory, delay_ms) => {
 // Đặt độ trễ tối thiểu là 500ms (0.5 giây)
 const MINIMUM_LOAD_DELAY = 500; 
 
-// --- CẬP NHẬT CÁCH LAZY LOAD CHATBOT VÀ CÁC COMPONENT KHÁC ---
+// --- CẬP NHẬT LAZY LOAD CÁC COMPONENT CHÍNH ---
 const Home = lazy(() => delayImport(() => import('../page/Home/Home'), MINIMUM_LOAD_DELAY));
+
 const ChatbotAIPage = lazy(() => delayImport(
     () => import('../page/chatbotAI/ChatbotAI'), 
+    MINIMUM_LOAD_DELAY
+));
+
+// [MỚI] Lazy load Dashboard (Giả sử bạn lưu file Dashboard.jsx trong folder ../page/dashboard/)
+const Dashboard = lazy(() => delayImport(
+    () => import('../page/dashboard/DashboardPage'), 
     MINIMUM_LOAD_DELAY
 ));
 
 const routes = [
     {
         path: "/",
-        element: Home,
+        element: HomeWrapper, 
         exact: true,
         name: "Trang Chủ",
     },
@@ -67,6 +75,14 @@ const routes = [
         element: Home,
         exact: true,
         name: "Trang Chủ",
+    },
+    // -----------------------------------------------------------
+    // [MỚI] Route cho Dashboard
+    {
+        path: "/dashboard",
+        element: Dashboard,
+        private: true, // Bắt buộc đăng nhập mới vào được
+        name: "Tổng quan",
     },
     // -----------------------------------------------------------
     {
@@ -168,7 +184,7 @@ const routes = [
         name: "Chi tiết bài viết",
     },
     {
-        path: "/support",  
+        path: "/support",   
         element: HelpAndSupport,
         private: true,      
         name: "Hỗ trợ",

@@ -2,15 +2,15 @@ import { Dialog, DialogPanel, Transition, TransitionChild } from '@headlessui/re
 import { 
     Bars3Icon, XMarkIcon, UserIcon, QuestionMarkCircleIcon, 
     Cog6ToothIcon, ArrowRightOnRectangleIcon, BellIcon, CheckCircleIcon,
-    TrashIcon, AtSymbolIcon
+    TrashIcon, AtSymbolIcon, MagnifyingGlassIcon // <--- 1. IMPORT THÊM ICON KÍNH LÚP
 } from '@heroicons/react/24/outline';
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { HeartIcon, ChatBubbleLeftIcon, UserPlusIcon } from '@heroicons/react/24/solid';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { supabase } from '../routes/supabaseClient';
-import LazyLoading from '../page/enhancements/LazyLoading';
-import UserAvatar from '../page/community/UserAvatar';
+import { supabase } from '../routes/supabaseClient'; // Đảm bảo đường dẫn đúng
+import LazyLoading from '../page/enhancements/LazyLoading'; // Đảm bảo đường dẫn đúng
+import UserAvatar from '../components/UserAvatar'; // Đảm bảo đường dẫn đúng
 
 const navigation = [
     { name: 'Product', href: 'product' },
@@ -175,7 +175,7 @@ const Header = ({ user }) => {
     // --- STYLE HEADER ---
     const headerClasses = `fixed inset-x-0 top-0 z-50 transition-all duration-300 border-b ${
         scrolled 
-        ? 'bg-[#05050A]/80 backdrop-blur-xl border-white/5 shadow-lg shadow-black/20' 
+        ? 'bg-[#050505]/80 backdrop-blur-xl border-white/5 shadow-lg shadow-cyan-500/5' 
         : 'bg-transparent border-transparent'
     }`;
 
@@ -193,7 +193,10 @@ const Header = ({ user }) => {
                 {/* Logo Area */}
                 <div className="flex lg:flex-1">
                     <Link to="/" className="-m-1.5 p-1.5 group flex items-center gap-2">
-                        <span className="text-2xl font-bold bg-gradient-to-r from-white via-indigo-200 to-indigo-400 bg-clip-text text-transparent tracking-tight group-hover:to-white transition-all duration-300">HyperX</span>
+                        {/* Logo Style giống Dashboard */}
+                        <span className="text-2xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-200 to-gray-500 group-hover:to-white transition-all duration-300">
+                            HYPER<span className="text-cyan-400">X</span>
+                        </span>
                     </Link>
                 </div>
 
@@ -211,10 +214,11 @@ const Header = ({ user }) => {
                         <NavLink key={item.name} to={item.href} className="relative group py-2">
                             {({ isActive }) => (
                                 <>
-                                    <span className={`text-sm font-semibold transition-colors duration-300 ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-white'}`}>
+                                    <span className={`text-sm font-medium transition-colors duration-300 ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-cyan-400'}`}>
                                         {item.name}
                                     </span>
-                                    <span className={`absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,1)] transition-all duration-300 ${isActive ? 'opacity-100 scale-100' : 'opacity-0 scale-0 group-hover:opacity-50 group-hover:scale-75'}`}></span>
+                                    {/* Glow Line Effect */}
+                                    <span className={`absolute -bottom-1 left-0 w-full h-[2px] bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.8)] transition-all duration-300 ${isActive ? 'opacity-100 scale-x-100' : 'opacity-0 scale-x-0 group-hover:opacity-50 group-hover:scale-x-50'}`}></span>
                                 </>
                             )}
                         </NavLink>
@@ -225,26 +229,39 @@ const Header = ({ user }) => {
                 <div className="hidden lg:flex lg:flex-1 lg:justify-end items-center gap-5 relative">
                     {user ? (
                         <>
+                            {/* --- 2. THANH INPUT SEARCH (Chỉ hiện khi có User) --- */}
+                            <div className="relative group hidden xl:block">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <MagnifyingGlassIcon className="h-4 w-4 text-gray-500 group-focus-within:text-cyan-400 transition-colors" />
+                                </div>
+                                <input 
+                                    type="text" 
+                                    placeholder="Search..." 
+                                    className="bg-white/5 border border-white/10 text-gray-300 text-sm rounded-full focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 block w-full pl-9 p-2.5 placeholder-gray-500 hover:bg-white/10 transition-all outline-none w-[200px] focus:w-[280px]"
+                                />
+                            </div>
+                            {/* ---------------------------------------------------- */}
+
                             {/* --- NOTIFICATION --- */}
                             <div className="relative" ref={notiRef}>
                                 <button 
                                     onClick={() => setNotiOpen(!notiOpen)}
-                                    className={`relative p-2.5 rounded-full transition-all duration-200 ${notiOpen ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+                                    className={`relative p-2.5 rounded-full transition-all duration-200 group ${notiOpen ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
                                 >
-                                    <BellIcon className="w-6 h-6" />
+                                    <BellIcon className="w-6 h-6 group-hover:text-cyan-400 transition-colors" />
                                     {unreadCount > 0 && (
-                                        <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm ring-2 ring-[#05050A]">
+                                        <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm ring-2 ring-[#05050A] animate-pulse">
                                             {unreadCount > 9 ? '9+' : unreadCount}
                                         </span>
                                     )}
                                 </button>
 
                                 {notiOpen && (
-                                    <div className="absolute right-0 mt-4 w-96 rounded-2xl bg-[#0B0D14] border border-white/10 shadow-2xl z-50 overflow-hidden origin-top-right animate-in fade-in zoom-in duration-200 ring-1 ring-black/50">
+                                    <div className="absolute right-0 mt-4 w-96 rounded-2xl bg-[#0B0D14] border border-white/10 shadow-2xl z-50 overflow-hidden origin-top-right animate-in fade-in zoom-in duration-200 ring-1 ring-white/5">
                                         <div className="flex items-center justify-between px-5 py-4 border-b border-white/5 bg-white/5 backdrop-blur-sm">
                                             <h3 className="text-sm font-bold text-white">Notifications</h3>
                                             {unreadCount > 0 && (
-                                                <button onClick={handleMarkAllRead} className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors">
+                                                <button onClick={handleMarkAllRead} className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1 transition-colors">
                                                     <CheckCircleIcon className="w-3.5 h-3.5" /> Mark all read
                                                 </button>
                                             )}
@@ -256,9 +273,9 @@ const Header = ({ user }) => {
                                                         key={noti.id}
                                                         onClick={() => handleReadNotification(noti)}
                                                         className={`flex gap-4 px-5 py-4 cursor-pointer transition-colors border-b border-white/5 last:border-0 relative hover:bg-white/5
-                                                            ${!noti.is_read ? 'bg-indigo-500/5' : ''}`}
+                                                            ${!noti.is_read ? 'bg-cyan-500/5' : ''}`}
                                                     >
-                                                        {!noti.is_read && <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500"></div>}
+                                                        {!noti.is_read && <div className="absolute left-0 top-0 bottom-0 w-1 bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.6)]"></div>}
 
                                                         <div className="flex-shrink-0 mt-1">
                                                             <div className="relative">
@@ -307,18 +324,18 @@ const Header = ({ user }) => {
                                         <img
                                             src={safeUserAvatar}
                                             alt="User"
-                                            className="w-9 h-9 rounded-full border border-white/20 group-hover:border-indigo-500 transition-colors object-cover"
+                                            className="w-9 h-9 rounded-full border border-white/20 group-hover:border-cyan-500 transition-colors object-cover ring-2 ring-transparent group-hover:ring-cyan-500/20"
                                         />
                                         <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-[#05050A] rounded-full"></div>
                                     </div>
                                 </div>
 
                                 {dropdownOpen && (
-                                    <div className="absolute right-0 mt-4 w-64 rounded-2xl bg-[#0B0D14] border border-white/10 shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in duration-150 ring-1 ring-black/50">
+                                    <div className="absolute right-0 mt-4 w-64 rounded-2xl bg-[#0B0D14] border border-white/10 shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in duration-150 ring-1 ring-white/5">
                                         <div className="px-5 py-4 border-b border-white/5 bg-white/5">
-                                            <p className="text-xs text-indigo-400 font-bold uppercase tracking-wider mb-2">Account</p>
+                                            <p className="text-xs text-cyan-400 font-bold uppercase tracking-wider mb-2">Account</p>
                                             <div className='flex items-center gap-3'>
-                                                <img src={safeUserAvatar} alt="" className="w-10 h-10 rounded-full border border-indigo-500/50" />
+                                                <img src={safeUserAvatar} alt="" className="w-10 h-10 rounded-full border border-cyan-500/50" />
                                                 <div className="overflow-hidden">
                                                     <p className="text-sm font-bold text-white truncate">{safeUserName}</p>
                                                     <p className="text-xs text-gray-400 truncate">{safeUserEmail}</p>
@@ -329,6 +346,10 @@ const Header = ({ user }) => {
                                         <div className="p-2 space-y-1">
                                             <Link to="/profile" className="flex items-center px-3 py-2 text-sm text-gray-300 hover:bg-white/10 hover:text-white rounded-lg gap-3 transition-colors" onClick={() => setDropdownOpen(false)}>
                                                 <UserIcon className="w-4.5 h-4.5 text-gray-500" /> Profile
+                                            </Link>
+                                            {/* Link tới Dashboard */}
+                                            <Link to="/dashboard" className="flex items-center px-3 py-2 text-sm text-gray-300 hover:bg-white/10 hover:text-white rounded-lg gap-3 transition-colors" onClick={() => setDropdownOpen(false)}>
+                                                <ArrowRightOnRectangleIcon className="w-4.5 h-4.5 text-gray-500 -rotate-90" /> Dashboard
                                             </Link>
                                             <Link to="/support" className="flex items-center px-3 py-2 text-sm text-gray-300 hover:bg-white/10 hover:text-white rounded-lg gap-3 transition-colors" onClick={() => setDropdownOpen(false)}>
                                                 <QuestionMarkCircleIcon className="w-4.5 h-4.5 text-gray-500" /> Help & Support
@@ -349,21 +370,24 @@ const Header = ({ user }) => {
                         </>
                     ) : (
                         <>
-                            <Link to="/signup" className="text-sm font-semibold text-gray-300 hover:text-white transition-colors">Sign up</Link>
-                            <Link to="/signin" className="px-5 py-2.5 rounded-xl bg-white text-gray-900 text-sm font-bold hover:bg-gray-100 transition-all shadow-lg hover:scale-105 active:scale-95">Sign in</Link>
+                            <Link to="/signin" className="text-sm font-semibold text-gray-300 hover:text-white transition-colors">Sign in</Link>
+                            <Link to="/signup" className="px-5 py-2.5 rounded-xl bg-white text-black text-sm font-bold hover:bg-cyan-400 hover:text-white hover:shadow-[0_0_20px_rgba(34,211,238,0.5)] transition-all active:scale-95">
+                                Sign up
+                            </Link>
                         </>
                     )}
                 </div>
             </nav>
 
-            {/* Mobile menu */}
+            {/* Mobile menu - Giữ nguyên không thay đổi */}
             <Dialog open={mobileMenuOpen} onClose={setMobileMenuOpen} className="lg:hidden">
                 <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm" />
-                <DialogPanel className="fixed inset-y-0 right-0 z-50 w-full overflow-y-auto bg-[#0B0D14] p-6 sm:max-w-sm border-l border-white/10 shadow-2xl">
+                <DialogPanel className="fixed inset-y-0 right-0 z-50 w-full overflow-y-auto bg-[#050505] p-6 sm:max-w-sm border-l border-white/10 shadow-2xl">
                     <div className="flex items-center justify-between">
                         <Link to="/" className="-m-1.5 p-1.5 flex items-center gap-2" onClick={() => setMobileMenuOpen(false)}>
-                            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold">H</div>
-                            <span className="text-2xl font-bold text-white">HyperX</span>
+                            <span className="text-2xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white via-cyan-200 to-indigo-500">
+                                HYPER<span className="text-cyan-400">X</span>
+                            </span>
                         </Link>
                         <button type="button" onClick={() => setMobileMenuOpen(false)} className="-m-2.5 rounded-md p-2.5 text-gray-400 hover:text-white">
                             <span className="sr-only">Close menu</span>
@@ -381,18 +405,21 @@ const Header = ({ user }) => {
                                 {user ? (
                                     <div className="flex flex-col gap-4">
                                         <Link to="/profile" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 -mx-3 px-3 py-2 rounded-lg hover:bg-white/10">
-                                            <img src={safeUserAvatar} alt="" className="w-8 h-8 rounded-full border border-indigo-500" />
+                                            <img src={safeUserAvatar} alt="" className="w-8 h-8 rounded-full border border-cyan-500" />
                                             <div>
                                                 <div className="text-white font-medium">Profile</div>
                                                 <div className="text-xs text-gray-500">{safeUserEmail}</div>
                                             </div>
+                                        </Link>
+                                        <Link to="/dashboard" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 -mx-3 px-3 py-2 rounded-lg hover:bg-white/10 text-gray-300">
+                                             Dashboard
                                         </Link>
                                         <button onClick={() => { handleLogout(); setMobileMenuOpen(false); }} className="w-full text-center px-4 py-2.5 text-sm font-semibold text-white bg-red-600/20 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600/30 flex items-center justify-center gap-2"><ArrowRightOnRectangleIcon className="w-5 h-5" /> Logout</button>
                                     </div>
                                 ) : (
                                     <div className="flex flex-col gap-3">
                                         <Link to="/signin" className="w-full text-center rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-white hover:bg-white/10 border border-white/10" onClick={() => setMobileMenuOpen(false)}>Sign in</Link>
-                                        <Link to="/signup" className="w-full text-center rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-white bg-indigo-600 hover:bg-indigo-500" onClick={() => setMobileMenuOpen(false)}>Sign up</Link>
+                                        <Link to="/signup" className="w-full text-center rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-black bg-white hover:bg-cyan-400 hover:text-white transition-colors" onClick={() => setMobileMenuOpen(false)}>Sign up</Link>
                                     </div>
                                 )}
                             </div>
@@ -401,7 +428,7 @@ const Header = ({ user }) => {
                 </DialogPanel>
             </Dialog>
 
-            {/* CONFIRMATION MODAL */}
+            {/* CONFIRMATION MODAL - Giữ nguyên */}
             <Transition show={isDeleteModalOpen}>
                 <Dialog as="div" className="relative z-[100]" onClose={closeDeleteModal}>
                     <TransitionChild enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
@@ -411,8 +438,8 @@ const Header = ({ user }) => {
                     <div className="fixed inset-0 z-10 w-screen overflow-y-auto">
                         <div className="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
                             <TransitionChild enter="ease-out duration-300" enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" enterTo="opacity-100 translate-y-0 sm:scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 translate-y-0 sm:scale-100" leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
-                                <DialogPanel className="relative transform overflow-hidden rounded-2xl bg-[#1e293b] text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-md border border-white/10">
-                                    <div className="bg-[#1e293b] px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                                <DialogPanel className="relative transform overflow-hidden rounded-2xl bg-[#0B0D14] text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-md border border-white/10 ring-1 ring-white/5">
+                                    <div className="bg-[#0B0D14] px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
                                         <div className="sm:flex sm:items-start">
                                             <div className="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-500/10 sm:mx-0 sm:h-10 sm:w-10">
                                                 <ExclamationTriangleIcon className="h-6 w-6 text-red-500" aria-hidden="true" />

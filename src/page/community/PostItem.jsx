@@ -1,6 +1,6 @@
 import React, { useEffect, useState, memo, useCallback } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import UserAvatar from "./UserAvatar";
+import UserAvatar from "../../components/UserAvatar";
 import formatTime from "./formatTime";
 import { Edit, EditIcon, Heart, MessageCircle, MoreVertical, Send, Trash2 } from "lucide-react";
 import DeleteConfirmModal from "./DeleteConfirmModal";

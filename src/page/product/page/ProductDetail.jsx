@@ -9,7 +9,7 @@ import {
     X, Download, AlertTriangle, MoreVertical, Monitor
 } from 'lucide-react';
 
-import UserAvatar from '../../community/UserAvatar';
+import UserAvatar from '../../../components/UserAvatar';
 
 const ProductDetail = () => {
 

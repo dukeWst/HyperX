@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "../../routes/supabaseClient";
-import UserAvatar from "../community/UserAvatar";
+import UserAvatar from "../../components/UserAvatar";
 import PostItem from "../community/PostItem";
 import { 
     Calendar, Mail, Edit3, LogOut, 
