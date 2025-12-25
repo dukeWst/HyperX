@@ -344,9 +344,13 @@ const Header = ({ user }) => {
                                         </div>
                                         
                                         <div className="p-2 space-y-1">
-                                            <Link to="/profile" className="flex items-center px-3 py-2 text-sm text-gray-300 hover:bg-white/10 hover:text-white rounded-lg gap-3 transition-colors" onClick={() => setDropdownOpen(false)}>
-                                                <UserIcon className="w-4.5 h-4.5 text-gray-500" /> Profile
-                                            </Link>
+                                            <Link 
+    to={`/profile/${user?.id}`} 
+    className="flex items-center px-3 py-2 text-sm text-gray-300 hover:bg-white/10 hover:text-white rounded-lg gap-3 transition-colors" 
+    onClick={() => setDropdownOpen(false)}
+>
+    <UserIcon className="w-4.5 h-4.5 text-gray-500" /> Profile
+</Link>
                                             {/* Link tới Dashboard */}
                                             <Link to="/dashboard" className="flex items-center px-3 py-2 text-sm text-gray-300 hover:bg-white/10 hover:text-white rounded-lg gap-3 transition-colors" onClick={() => setDropdownOpen(false)}>
                                                 <ArrowRightOnRectangleIcon className="w-4.5 h-4.5 text-gray-500 -rotate-90" /> Dashboard
@@ -404,13 +408,17 @@ const Header = ({ user }) => {
                             <div className="py-6">
                                 {user ? (
                                     <div className="flex flex-col gap-4">
-                                        <Link to="/profile" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 -mx-3 px-3 py-2 rounded-lg hover:bg-white/10">
-                                            <img src={safeUserAvatar} alt="" className="w-8 h-8 rounded-full border border-cyan-500" />
-                                            <div>
-                                                <div className="text-white font-medium">Profile</div>
-                                                <div className="text-xs text-gray-500">{safeUserEmail}</div>
-                                            </div>
-                                        </Link>
+                                        <Link 
+    to={`/profile/${user?.id}`} 
+    onClick={() => setMobileMenuOpen(false)} 
+    className="flex items-center gap-3 -mx-3 px-3 py-2 rounded-lg hover:bg-white/10"
+>
+    <img src={safeUserAvatar} alt="" className="w-8 h-8 rounded-full border border-cyan-500" />
+    <div>
+        <div className="text-white font-medium">Profile</div>
+        <div className="text-xs text-gray-500">{safeUserEmail}</div>
+    </div>
+</Link>
                                         <Link to="/dashboard" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 -mx-3 px-3 py-2 rounded-lg hover:bg-white/10 text-gray-300">
                                              Dashboard
                                         </Link>
