@@ -9,21 +9,29 @@ import {
     ShieldAlert, XCircle, Loader2
 } from "lucide-react";
 
-const UserProfile = () => {
+const UserProfile = ({ user: propUser }) => {
     const { id } = useParams(); 
     const navigate = useNavigate();
 
-    const [profile, setProfile] = useState(null);
+    const [profile, setProfile] = useState(() => {
+        // Pre-populate if viewing own profile and propUser exists
+        if (propUser && (!id || id === propUser.id)) {
+            return {
+                id: propUser.id,
+                full_name: propUser.user_metadata?.full_name || propUser.user_metadata?.name || "User",
+                avatar_url: propUser.user_metadata?.avatar_url || propUser.user_metadata?.picture || `https://ui-avatars.com/api/?name=${propUser.email}`
+            };
+        }
+        return null;
+    });
+
     const [posts, setPosts] = useState([]);
     const [products, setProducts] = useState([]); 
-    const [currentUser, setCurrentUser] = useState(null);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(!profile); // Chỉ loading nếu chưa có profile pre-fill
     
-    // --- STATE CHO FOLLOW ---
+    // ... rest of state stays same ...
     const [isFollowing, setIsFollowing] = useState(false);
     const [isUpdatingFollow, setIsUpdatingFollow] = useState(false);
-
-    // State Tab
     const [activeTab, setActiveTab] = useState('all'); 
     const [selectedPostId, setSelectedPostId] = useState(null);
     const [isFollowModalOpen, setIsFollowModalOpen] = useState(false);
@@ -33,7 +41,6 @@ const UserProfile = () => {
         postCount: 0, likeCount: 0, productCount: 0, followerCount: 0, followingCount: 0 
     });
 
-    // Lists for Followers/Following
     const [followers, setFollowers] = useState([]);
     const [following, setFollowing] = useState([]);
 
@@ -43,98 +50,49 @@ const UserProfile = () => {
     };
 
     const fetchData = useCallback(async (silent = false) => {
-        if (!silent) setIsLoading(true);
+        if (!silent && !profile) setIsLoading(true);
         
-        const { data: { user } } = await supabase.auth.getUser();
-        setCurrentUser(user);
-        const targetUserId = id || user?.id;
-
-        if (!targetUserId) {
+        const activeUser = propUser;
+        const effectiveId = id || activeUser?.id;
+        
+        if (!effectiveId) {
             setIsLoading(false);
             return;
         }
 
         try {
-            // 1. Fetch Profile
-            const { data: profileData, error: profileError } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', targetUserId)
-                .single();
-            
-            if (profileError) throw profileError;
-            
-            let updatedProfile = { ...profileData };
-
-            // --- LOGIC: TỰ ĐỘNG ĐỒNG BỘ NẾU TRỐNG (SYNC ON VIEW) ---
-            if (user && user.id === targetUserId) {
-                const metadata = user.user_metadata || {};
-                const needsSync = !profileData.avatar_url || !profileData.full_name;
-
-                if (needsSync) {
-                    const syncData = {
-                        full_name: profileData.full_name || metadata.full_name || metadata.name,
-                        avatar_url: profileData.avatar_url || metadata.avatar_url || metadata.picture
-                    };
-
-                    // Cập nhật database dùng upsert để đảm bảo row tồn tại
-                    const { error: syncError } = await supabase.from('profiles').upsert({ 
-                        id: user.id,
-                        ...syncData
-                    });
-                    
-                    if (syncError) console.error("Auto-sync profile failed:", syncError);
-                    
-                    // Cập nhật state local để hiển thị ngay
-                    updatedProfile = { ...updatedProfile, ...syncData };
-                }
-            }
-
+            // 2. Tải TẤT CẢ dữ liệu nền tảng cùng lúc
             const [
-                { data: postsData, error: postsError }, 
-                { data: followersData, error: followersError, count: followerCount }, 
-                { data: followingData, error: followingError, count: followingCount },
-                { data: productsData, error: productsError }
+                { data: profileData, error: profileError },
+                { data: postsData }, 
+                { data: followersData, count: followerCount }, 
+                { data: followingData, count: followingCount },
+                { data: productsData },
+                followStatusResult
             ] = await Promise.all([
+                supabase.from('profiles').select('*').eq('id', effectiveId).single(),
                 supabase.from('community_posts')
                     .select('*, profiles(*)')
-                    .eq('user_id', targetUserId)
+                    .eq('user_id', effectiveId)
                     .order('created_at', { ascending: false }),
-                supabase.from('follows')
-                    .select('follower_id', { count: 'exact' })
-                    .eq('following_id', targetUserId),
-                supabase.from('follows')
-                    .select('following_id', { count: 'exact' })
-                    .eq('follower_id', targetUserId),
-                supabase.from('products').select('*').eq('user_id', targetUserId).order('created_at', { ascending: false })
+                supabase.from('follows').select('follower_id', { count: 'exact' }).eq('following_id', effectiveId),
+                supabase.from('follows').select('following_id', { count: 'exact' }).eq('follower_id', effectiveId),
+                supabase.from('products').select('*').eq('user_id', effectiveId).order('created_at', { ascending: false }),
+                // Check follow status in parallel
+                (activeUser && activeUser.id !== effectiveId) 
+                    ? supabase.from('follows').select('follower_id').eq('follower_id', activeUser.id).eq('following_id', effectiveId).maybeSingle()
+                    : Promise.resolve({ data: null })
             ]);
 
-            if (postsError) throw postsError;
-            if (followersError) console.error("Followers fetch error:", followersError);
-            if (followingError) console.error("Following fetch error:", followingError);
-            if (productsError) console.error("Error fetching products:", productsError);
-
-            setProfile(updatedProfile);
-            setProducts(productsData || []);
-
-            // FETCH PROFILE DETAILS (No-Join Fallback for Missing Foreign Keys)
+            if (profileError) throw profileError;
+            
+            // 3. Tiếp tục tải chi tiết (Secondary fetch) - Vẫn giữ local biến, không set state vội
             const fetchProfileDetails = async (idList, idField) => {
                 if (!idList || idList.length === 0) return [];
                 const ids = idList.map(item => item[idField]).filter(Boolean);
                 if (ids.length === 0) return [];
-                
-                const { data, error } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .in('id', ids);
-                
-                if (error) {
-                    console.error("Error fetching detailed profiles:", error);
-                    return ids.map(id => ({ id, full_name: "Private User" }));
-                }
-                
-                // Map back to ensure order or handle missing
-                return ids.map(id => data.find(p => p.id === id) || { id, full_name: "Private User" });
+                const { data } = await supabase.from('profiles').select('*').in('id', ids);
+                return ids.map(id => data?.find(p => p.id === id) || { id, full_name: "Private User" });
             };
 
             const [followerProfiles, followingProfiles] = await Promise.all([
@@ -142,11 +100,7 @@ const UserProfile = () => {
                 fetchProfileDetails(followingData, 'following_id')
             ]);
 
-            setFollowers(followerProfiles);
-            setFollowing(followingProfiles);
-
-            // FIX ẢNH POSTS
-            const formattedPosts = postsData.map(post => {
+            const formattedPosts = (postsData || []).map(post => {
                 const profileInfo = post.profiles || {};
                 const metadata = post.raw_user_meta_data || {};
                 return {
@@ -159,37 +113,36 @@ const UserProfile = () => {
                     email: post.email || profileInfo.email
                 };
             });
-            setPosts(formattedPosts);
 
+            // 4. CHỈ CẬP NHẬT STATE KHI TẤT CẢ ĐÃ SẴN SÀNG (ATOMIC UPDATE)
+            // React 19 sẽ batch toàn bộ các setter này vào 1 lần render duy nhất.
+            setProfile(profileData);
+            setProducts(productsData || []);
+            setPosts(formattedPosts);
+            setFollowers(followerProfiles);
+            setFollowing(followingProfiles);
+            setIsFollowing(!!followStatusResult.data);
             setStats({
-                postCount: postsData.length,
+                postCount: postsData?.length || 0,
                 likeCount: formattedPosts.reduce((acc, curr) => acc + (curr.like_count || 0), 0),
                 productCount: productsData?.length || 0,
                 followerCount: followerCount || 0,
                 followingCount: followingCount || 0
             });
 
-            // Check Follow Status
-            if (user && user.id !== targetUserId) {
-                const { data: followData } = await supabase
-                    .from('follows')
-                    .select('follower_id')
-                    .eq('follower_id', user.id)
-                    .eq('following_id', targetUserId)
-                    .maybeSingle();
-                setIsFollowing(!!followData);
-            }
-
         } catch (error) {
             console.error("Error fetching profile data:", error);
         } finally {
             setIsLoading(false);
         }
-    }, [id]);
+    }, [id, propUser, profile]);
 
     useEffect(() => {
-        fetchData();
-    }, [fetchData]);
+        // Initial fetch only if not pre-populated
+        if (!profile) {
+            fetchData();
+        }
+    }, [id, fetchData, profile]); // Added missing dependencies to satisfy lint
 
     const handlePostUpdated = (updatedPost) => setPosts(prev => prev.map(p => p.id === updatedPost.id ? { ...p, ...updatedPost } : p));
     const handlePostDeleted = (deletedPostId) => {
@@ -199,7 +152,7 @@ const UserProfile = () => {
     };
 
     const handleFollowToggle = async () => {
-        if (!currentUser) return alert("Please log in to follow.");
+        if (!propUser) return alert("Please log in to follow.");
         if (followActionInProgress.current) return;
 
         // If already following, open management modal instead of immediate unfollow
@@ -226,9 +179,9 @@ const UserProfile = () => {
 
         try {
             if (isUnfollow) {
-                await supabase.from('follows').delete().eq('follower_id', currentUser.id).eq('following_id', profile.id);
+                await supabase.from('follows').delete().eq('follower_id', propUser.id).eq('following_id', profile.id);
             } else {
-                await supabase.from('follows').insert({ follower_id: currentUser.id, following_id: profile.id });
+                await supabase.from('follows').insert({ follower_id: propUser.id, following_id: profile.id });
             }
             fetchData(true);
         } catch (error) {
@@ -246,26 +199,21 @@ const UserProfile = () => {
 
     const handleTabChange = (tab) => {
         setActiveTab(prev => prev === tab ? 'all' : tab);
-        window.scrollTo({ top: 400, behavior: 'smooth' }); // Scroll to content area
     };
 
     // --- RENDER ---
-    if (isLoading) return (
-        <div className="min-h-screen bg-[#05050A] flex flex-col items-center justify-center gap-4">
-            <div className="w-12 h-12 border-t-2 border-cyan-500 rounded-full animate-spin"></div>
-            <p className="text-cyan-400 font-mono text-sm animate-pulse">LOADING PROFILE...</p>
-        </div>
-    );
+    const isOwnProfile = propUser && profile && propUser.id === profile.id;
 
-    if (!profile) return (
-        <div className="min-h-screen bg-[#05050A] flex flex-col items-center justify-center text-center gap-6">
-            <div className="p-6 bg-white/5 rounded-full"><UserX size={48} className="text-gray-500" /></div>
-            <h2 className="text-2xl font-bold text-white">User Not Found</h2>
-            <button onClick={() => navigate('/')} className="px-6 py-2 bg-cyan-600 text-black font-bold rounded-lg hover:bg-cyan-500 transition-colors">Go Home</button>
-        </div>
-    );
-
-    const isOwnProfile = currentUser && currentUser.id === profile.id;
+    // Chỉ chặn render nếu KHÔNG ĐANG LOADING mà vẫn KHÔNG CÓ PROFILE (Lỗi 404)
+    if (!profile && !isLoading) {
+        return (
+            <div className="min-h-screen bg-[#05050A] flex flex-col items-center justify-center text-center gap-6">
+                <div className="p-6 bg-white/5 rounded-full"><UserX size={48} className="text-gray-500" /></div>
+                <h2 className="text-2xl font-bold text-white">User Not Found</h2>
+                <button onClick={() => navigate('/')} className="px-6 py-2 bg-cyan-600 text-black font-bold rounded-lg hover:bg-cyan-500 transition-colors">Go Home</button>
+            </div>
+        );
+    }
 
     if (selectedPostId) {
         const selectedPost = posts.find(p => p.id === selectedPostId);
@@ -277,7 +225,7 @@ const UserProfile = () => {
                     </button>
                     {selectedPost ? (
                         <div className="bg-[#0B0D14] border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
-                             <PostItem post={selectedPost} currentUser={currentUser} onPostDeleted={handlePostDeleted} onPostUpdated={handlePostUpdated} />
+                             <PostItem post={selectedPost} currentUser={propUser} onPostDeleted={handlePostDeleted} onPostUpdated={handlePostUpdated} />
                         </div>
                     ) : <div className="text-center text-gray-500">Post not found</div>}
                 </div>
@@ -294,96 +242,98 @@ const UserProfile = () => {
             <div className="max-w-6xl mx-auto px-4 sm:px-6 relative z-10 pt-20">
                 
                 {/* --- HEADER CARD --- */}
-                <div className="relative rounded-b-3xl bg-[#0B0D14] border border-white/10 shadow-2xl overflow-hidden">
-                    
-                    {/* Banner Image */}
-                    <div className="h-48 md:h-64 w-full relative bg-gradient-to-r from-cyan-900 via-blue-900 to-purple-900 z-5">
-                         <div className="absolute inset-0 bg-black/10"></div>
-                    </div>
+                {!profile ? (
+                    <HeaderSkeleton />
+                ) : (
+                    <div className="relative rounded-b-3xl bg-[#0B0D14] border border-white/10 shadow-2xl overflow-hidden animate-in fade-in duration-300">
+                        {/* Banner Image */}
+                        <div className="h-48 md:h-64 w-full relative bg-gradient-to-r from-cyan-900 via-blue-900 to-purple-900 z-5">
+                             <div className="absolute inset-0 bg-black/10"></div>
+                        </div>
 
-                    <div className="px-6 md:px-10 pb-8">
-                        <div className="flex flex-col md:flex-row items-start md:items-end -mt-20 gap-6">
-                            
-                            {/* Avatar */}
-                            <div className="relative group z-10">
-                                <div className="p-1 bg-[#0B0D14] rounded-full ring-1 ring-white/10 shadow-2xl">
-                                    <UserAvatar 
-                                        user={{ 
-                                            ...profile,
-                                            raw_user_meta_data: { 
+                        <div className="px-6 md:px-10 pb-8">
+                            <div className="flex flex-col md:flex-row items-start md:items-end -mt-20 gap-6">
+                                {/* Avatar */}
+                                <div className="relative group z-10">
+                                    <div className="p-1 bg-[#0B0D14] rounded-full ring-1 ring-white/10 shadow-2xl">
+                                        <UserAvatar 
+                                            user={{ 
                                                 ...profile,
-                                                avatar_url: profile.avatar_url, 
-                                                full_name: profile.full_name 
-                                            }
-                                        }} 
-                                        size="xl" 
-                                        className="w-32 h-32 md:w-44 md:h-44 text-5xl object-cover" 
-                                    />
+                                                raw_user_meta_data: { 
+                                                    ...profile,
+                                                    avatar_url: profile.avatar_url, 
+                                                    full_name: profile.full_name 
+                                                }
+                                            }} 
+                                            size="xl" 
+                                            className="w-32 h-32 md:w-44 md:h-44 text-5xl object-cover" 
+                                        />
+                                    </div>
                                 </div>
-                            </div>
 
-                            {/* Info */}
-                            <div className="flex-1 space-y-2 pt-2 text-center md:text-left z-10">
-                                <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight ">{profile.full_name || "Unknown User"}</h1>
+                                {/* Info */}
+                                <div className="flex-1 space-y-2 pt-2 text-center md:text-left z-10">
+                                    <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight ">{profile.full_name || "Unknown User"}</h1>
+                                    
+                                    <div className="flex flex-wrap justify-center md:justify-start gap-4 text-sm font-medium text-gray-400">
+                                        <div className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
+                                            <Mail size={14} className="text-cyan-400" />
+                                            <span>{profile.email}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
+                                            <Calendar size={14} className="text-blue-400" />
+                                            <span>Joined {new Date(profile.created_at || Date.now()).toLocaleDateString()}</span>
+                                        </div>
+                                    </div>
+                                </div>
                                 
-                                <div className="flex flex-wrap justify-center md:justify-start gap-4 text-sm font-medium text-gray-400">
-                                    <div className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
-                                        <Mail size={14} className="text-cyan-400" />
-                                        <span>{profile.email}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
-                                        <Calendar size={14} className="text-blue-400" />
-                                        <span>Joined {new Date(profile.created_at || Date.now()).toLocaleDateString()}</span>
-                                    </div>
+                                {/* Buttons */}
+                                <div className="w-full md:w-auto flex justify-center gap-3 mb-2 md:mb-0">
+                                    {isOwnProfile ? (
+                                        <button onClick={() => navigate('/setting')} className="flex items-center gap-2 px-6 py-2.5 bg-white/10 hover:bg-white/15 border border-white/10 rounded-xl font-semibold text-white transition-all hover:scale-105 active:scale-95">
+                                            <Edit3 size={18} /> Edit Profile
+                                        </button>
+                                    ) : (
+                                        <button 
+                                            onClick={handleFollowToggle}
+                                            disabled={isUpdatingFollow}
+                                            className={`flex items-center gap-2 px-8 py-2.5 rounded-xl font-bold transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:scale-100 disabled:cursor-not-allowed
+                                            ${isFollowing 
+                                                ? 'bg-white/5 border border-white/10 text-gray-300 hover:text-red-400 hover:border-red-500/30' 
+                                                : 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white hover:brightness-110 shadow-cyan-500/20'}`}
+                                        >
+                                            {isUpdatingFollow ? (
+                                                <><Loader2 size={18} className="animate-spin" /> Waiting...</>
+                                            ) : (
+                                                isFollowing ? <><UserCheck size={18} /> Following</> : <><UserPlus size={18} /> Follow</>
+                                            )}
+                                        </button>
+                                    )}
                                 </div>
                             </div>
-                            
-                            {/* Buttons */}
-                            <div className="w-full md:w-auto flex justify-center gap-3 mb-2 md:mb-0">
-                                {isOwnProfile ? (
-                                    <button onClick={() => navigate('/setting')} className="flex items-center gap-2 px-6 py-2.5 bg-white/10 hover:bg-white/15 border border-white/10 rounded-xl font-semibold text-white transition-all hover:scale-105 active:scale-95">
-                                        <Edit3 size={18} /> Edit Profile
-                                    </button>
-                                ) : (
-                                    <button 
-                                        onClick={handleFollowToggle}
-                                        disabled={isUpdatingFollow}
-                                        className={`flex items-center gap-2 px-8 py-2.5 rounded-xl font-bold transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:scale-100 disabled:cursor-not-allowed
-                                        ${isFollowing 
-                                            ? 'bg-white/5 border border-white/10 text-gray-300 hover:text-red-400 hover:border-red-500/30' 
-                                            : 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white hover:brightness-110 shadow-cyan-500/20'}`}
-                                    >
-                                        {isUpdatingFollow ? (
-                                            <><Loader2 size={18} className="animate-spin" /> Waiting...</>
-                                        ) : (
-                                            isFollowing ? <><UserCheck size={18} /> Following</> : <><UserPlus size={18} /> Follow</>
-                                        )}
-                                    </button>
-                                )}
-                            </div>
-                        </div>
 
-                        {/* --- STATS GRID --- */}
-                        <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-4 pt-8 border-t border-white/5">
-                            <StatCard 
-                                label="Projects" value={stats.productCount} icon={<Package />} color="text-green-400" 
-                                onClick={() => handleTabChange('products')} active={activeTab === 'products'} 
-                            />
-                            <StatCard 
-                                label="Posts" value={stats.postCount} icon={<Grid />} color="text-blue-400" 
-                                onClick={() => handleTabChange('posts')} active={activeTab === 'posts'} 
-                            />
-                            <StatCard 
-                                label="Followers" value={stats.followerCount} icon={<UserPlus />} color="text-pink-400" 
-                                onClick={() => handleTabChange('followers')} active={activeTab === 'followers'} 
-                            />
-                            <StatCard 
-                                label="Following" value={stats.followingCount} icon={<UserCheck />} color="text-cyan-400" 
-                                onClick={() => handleTabChange('following')} active={activeTab === 'following'} 
-                            />
+                            {/* --- STATS GRID --- */}
+                            <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-4 pt-8 border-t border-white/5">
+                                <StatCard 
+                                    label="Projects" value={stats.productCount} icon={<Package />} color="text-green-400" 
+                                    onClick={() => handleTabChange('products')} active={activeTab === 'products'} 
+                                />
+                                <StatCard 
+                                    label="Posts" value={stats.postCount} icon={<Grid />} color="text-blue-400" 
+                                    onClick={() => handleTabChange('posts')} active={activeTab === 'posts'} 
+                                />
+                                <StatCard 
+                                    label="Followers" value={stats.followerCount} icon={<UserPlus />} color="text-pink-400" 
+                                    onClick={() => handleTabChange('followers')} active={activeTab === 'followers'} 
+                                />
+                                <StatCard 
+                                    label="Following" value={stats.followingCount} icon={<UserCheck />} color="text-cyan-400" 
+                                    onClick={() => handleTabChange('following')} active={activeTab === 'following'} 
+                                />
+                            </div>
                         </div>
                     </div>
-                </div>
+                )}
 
                 {/* --- CONTENT SECTION --- */}
                 <div className="mt-12 min-h-[500px]">
@@ -465,14 +415,20 @@ const UserProfile = () => {
                             </div>
                             
                             <div className={activeTab === 'all' ? "flex gap-5 overflow-x-auto pb-6 -mx-4 px-4 custom-scrollbar" : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"}>
-                                {products.map(item => (
-                                    <ProductCard 
-                                        key={item.id} 
-                                        item={item} 
-                                        formatCurrency={formatCurrency} 
-                                        isSlider={activeTab === 'all'} 
-                                    />
-                                ))}
+                                {isLoading && products.length === 0 ? (
+                                    [...Array(activeTab === 'all' ? 4 : 6)].map((_, i) => (
+                                        <div key={i} className={`${activeTab === 'all' ? 'w-[280px]' : 'w-full'} aspect-[4/3] skeleton rounded-2xl`} />
+                                    ))
+                                ) : (
+                                    products.map(item => (
+                                        <ProductCard 
+                                            key={item.id} 
+                                            item={item} 
+                                            formatCurrency={formatCurrency} 
+                                            isSlider={activeTab === 'all'} 
+                                        />
+                                    ))
+                                )}
                             </div>
                         </div>
                     )}
@@ -489,9 +445,14 @@ const UserProfile = () => {
                                 <div className="grid gap-6">
                                     {posts.map(post => (
                                         <div key={post.id} className="bg-[#0B0D14] border border-white/10 rounded-2xl overflow-hidden hover:border-cyan-500/30 transition-colors">
-                                            <PostItem post={post} currentUser={currentUser} onPostDeleted={handlePostDeleted} onPostUpdated={handlePostUpdated} />
+                                            <PostItem post={post} currentUser={propUser} onPostDeleted={handlePostDeleted} onPostUpdated={handlePostUpdated} />
                                         </div>
                                     ))}
+                                </div>
+                            ) : isLoading ? (
+                                <div className="grid gap-6">
+                                    <PostSkeleton />
+                                    <PostSkeleton />
                                 </div>
                             ) : (
                                 <div className="flex flex-col items-center justify-center py-24 bg-white/[0.02] border border-dashed border-white/10 rounded-3xl text-center">
@@ -629,6 +590,48 @@ const ProductCard = ({ item, formatCurrency, isSlider }) => (
             </div>
         </div>
     </Link>
+);
+
+// --- SKELETON COMPONENTS ---
+const HeaderSkeleton = () => (
+    <div className="relative rounded-b-3xl bg-[#0B0D14] border border-white/10 shadow-2xl overflow-hidden">
+        <div className="h-48 md:h-64 w-full skeleton-cyan"></div>
+        <div className="px-6 md:px-10 pb-8">
+            <div className="flex flex-col md:flex-row items-start md:items-end -mt-20 gap-6">
+                <div className="w-32 h-32 md:w-44 md:h-44 rounded-full skeleton-cyan border-4 border-[#0B0D14]"></div>
+                <div className="flex-1 space-y-3 pt-2">
+                    <div className="h-8 w-48 skeleton rounded-lg"></div>
+                    <div className="flex gap-4">
+                        <div className="h-6 w-32 skeleton rounded-md opacity-60"></div>
+                        <div className="h-6 w-40 skeleton rounded-md opacity-40"></div>
+                    </div>
+                </div>
+                <div className="h-10 w-32 skeleton rounded-xl"></div>
+            </div>
+            <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-4 pt-8 border-t border-white/5">
+                {[...Array(4)].map((_, i) => (
+                    <div key={i} className="h-20 skeleton rounded-2xl opacity-50"></div>
+                ))}
+            </div>
+        </div>
+    </div>
+);
+
+const PostSkeleton = () => (
+    <div className="bg-[#0B0D14] border border-white/10 rounded-2xl p-6 space-y-4">
+        <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full skeleton"></div>
+            <div className="space-y-2">
+                <div className="h-4 w-24 skeleton rounded"></div>
+                <div className="h-3 w-16 skeleton rounded opacity-50"></div>
+            </div>
+        </div>
+        <div className="space-y-2">
+            <div className="h-4 w-full skeleton rounded opacity-60"></div>
+            <div className="h-4 w-5/6 skeleton rounded opacity-40"></div>
+        </div>
+        <div className="h-48 w-full skeleton rounded-xl opacity-30"></div>
+    </div>
 );
 
 export default UserProfile;

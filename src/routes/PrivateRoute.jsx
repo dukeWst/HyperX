@@ -1,34 +1,16 @@
-import { useEffect, useState } from 'react';
-import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { supabase } from './supabaseClient';
+import { useState } from 'react';
+import { Outlet, useNavigate } from 'react-router-dom';
 import LazyLoading from '../page/enhancements/LazyLoading';
 import NeedAuthModal from '../components/NeedAuthModal';
 
-const PrivateRoute = () => {
-    const [session, setSession] = useState(null);
-    const [loading, setLoading] = useState(true);
+const PrivateRoute = ({ user: propUser }) => {
     const [isModalOpen, setIsModalOpen] = useState(true);
     const navigate = useNavigate();
 
-    useEffect(() => {
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            setSession(session);
-            setLoading(false);
-        });
-
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            setSession(session);
-            setLoading(false);
-        });
-
-        return () => subscription.unsubscribe();
-    }, []);
-
-    if (loading) {
-        return <LazyLoading status="Loading..." />;
-    }
-
-    if (session) {
+    // Nếu App đang load auth chính (F5), App.jsx đã handle LazyLoading rồi.
+    // Ở đây ta chỉ check xem có user hay không để render Outlet ngay.
+    
+    if (propUser) {
         return <Outlet />;
     }
 

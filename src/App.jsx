@@ -65,7 +65,7 @@ function AppRoutes({ user }) {
           })}
 
           {/* NHÓM 2: PRIVATE ROUTES (Bảo vệ bởi PrivateRoute) */}
-          <Route element={<PrivateRoute />}>
+          <Route element={<PrivateRoute user={user} />}>
             {routes.map((route, index) => {
               if (route.private) {
                 return (
