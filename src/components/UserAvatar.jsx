@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../routes/supabaseClient';
 
-const UserAvatar = ({ user, size = "md" }) => {
+const UserAvatar = ({ user, size = "md", disableLink = false }) => {
     if (!user) return null; 
 
     // 1. Lấy metadata và profile từ nhiều nguồn có thể
@@ -86,7 +86,7 @@ const UserAvatar = ({ user, size = "md" }) => {
         </>
     );
 
-    if (userId) {
+    if (userId && !disableLink) {
         return (
             <Link 
                 to={`/profile/${userId}`} 

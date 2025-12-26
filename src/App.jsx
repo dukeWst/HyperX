@@ -92,10 +92,11 @@ function AppRoutes({ user }) {
 export default function App() {
   const [user, setUser] = useState(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [isFadingOut, setIsFadingOut] = useState(false);
 
   useEffect(() => {
     // Lấy session ngay lập tức khi load trang với độ trễ tối thiểu để tạo hiệu ứng "Boot" sang trọng
-    const MIN_LOAD_TIME = 500;
+    const MIN_LOAD_TIME = 1500;
     const startTime = Date.now();
 
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -104,26 +105,30 @@ export default function App() {
       
       setTimeout(() => {
         setUser(session?.user || null);
-        setIsAuthLoading(false);
+        setIsFadingOut(true); // Bắt đầu hiệu ứng mờ dần
+        
+        // Đợi 1s cho hiệu ứng CSS rồi mới gỡ Loader
+        setTimeout(() => {
+          setIsAuthLoading(false);
+        }, 1000);
       }, remaining);
     });
 
     // Lắng nghe sự thay đổi (Đăng nhập/Đăng xuất)
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user || null);
-      setIsAuthLoading(false);
+      // KHÔNG gọi setIsAuthLoading(false) ở đây để tránh race condition với bộ đếm thời gian khởi động bên trên
     });
 
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  if (isAuthLoading) {
-    return <LazyLoading status="Loading..." />;
-  }
-
   return (
-    <Router>
-      <AppRoutes user={user} />
-    </Router>
+    <>
+      <Router>
+        <AppRoutes user={user} />
+      </Router>
+      {isAuthLoading && <LazyLoading status="Loading..." isExiting={isFadingOut} />}
+    </>
   );
 }

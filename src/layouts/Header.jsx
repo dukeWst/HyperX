@@ -37,8 +37,15 @@ const Header = ({ user }) => {
     const [unreadCount, setUnreadCount] = useState(0);
     const [isAuthModalOpen, setIsAuthModalOpen ] = useState(false);
 
+    // --- State Tìm kiếm người dùng ---
+    const [searchQuery, setSearchQuery] = useState("");
+    const [searchResults, setSearchResults] = useState([]);
+    const [isSearching, setIsSearching] = useState(false);
+    const [searchOpen, setSearchOpen] = useState(false);
+
     const dropdownRef = useRef(null);
     const notiRef = useRef(null);
+    const searchRef = useRef(null);
 
     const closeDeleteModal = () => setIsDeleteModalOpen(false);
     const openDeleteModal = () => setIsDeleteModalOpen(true);
@@ -46,8 +53,56 @@ const Header = ({ user }) => {
     useEffect(() => {
         const handleScroll = () => setScrolled(window.scrollY > 10);
         window.addEventListener('scroll', handleScroll);
-        return () => window.removeEventListener('scroll', handleScroll);
+        
+        // Click outside listener for search & other dropdowns
+        const handleClickOutside = (event) => {
+            if (searchRef.current && !searchRef.current.contains(event.target)) {
+                setSearchOpen(false);
+            }
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setDropdownOpen(false);
+            }
+            if (notiRef.current && !notiRef.current.contains(event.target)) {
+                setNotiOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+
+        return () => {
+            window.removeEventListener('scroll', handleScroll);
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
     }, []);
+
+    // --- Logic Tìm kiếm người dùng (Debounced) ---
+    useEffect(() => {
+        if (!searchQuery.trim()) {
+            setSearchResults([]);
+            setSearchOpen(false);
+            return;
+        }
+
+        const delayDebounceFn = setTimeout(async () => {
+            setIsSearching(true);
+            setSearchOpen(true);
+            try {
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('id, full_name, avatar_url, email')
+                    .ilike('email', `${searchQuery}%`)
+                    .limit(5);
+
+                if (error) throw error;
+                setSearchResults(data || []);
+            } catch (err) {
+                console.error("Search error:", err);
+            } finally {
+                setIsSearching(false);
+            }
+        }, 400);
+
+        return () => clearTimeout(delayDebounceFn);
+    }, [searchQuery]);
 
     // HÀM FETCH CHÍNH
     const fetchNotifications = useCallback(async () => {
@@ -243,16 +298,82 @@ const Header = ({ user }) => {
                 <div className="hidden lg:flex lg:flex-1 lg:justify-end items-center gap-5 relative">
                     {user ? (
                         <>
-                            {/* --- 2. THANH INPUT SEARCH (Chỉ hiện khi có User) --- */}
-                            <div className="relative group hidden xl:block">
+                            {/* --- THANH TÌM KIẾM NGƯỜI DÙNG --- */}
+                            <div className="relative group hidden xl:block" ref={searchRef}>
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <MagnifyingGlassIcon className="h-4 w-4 text-gray-500 group-focus-within:text-cyan-400 transition-colors" />
                                 </div>
                                 <input 
                                     type="text" 
-                                    placeholder="Search..." 
-                                    className="bg-white/5 border border-white/10 text-gray-300 text-sm rounded-full focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 block w-full pl-9 p-2.5 placeholder-gray-500 hover:bg-white/10 transition-all outline-none w-[200px] focus:w-[280px]"
+                                    placeholder="Search users by email..." 
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    onFocus={() => searchQuery && setSearchOpen(true)}
+                                    className="bg-white/5 border border-white/10 text-gray-300 text-sm rounded-full focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 pl-9 p-2.5 placeholder-gray-500 hover:bg-white/10 transition-all duration-300 ease-in-out outline-none w-[200px] focus:w-[300px]"
                                 />
+
+                                {/* Kết quả tìm kiếm Dropdown */}
+                                {searchOpen && (
+                                    <div className="absolute right-0 mt-3 w-[340px] bg-[#0B0D14] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-[60] animate-in fade-in slide-in-from-top-2 duration-200">
+                                        <div className="px-4 py-3 border-b border-white/5 bg-white/5 flex items-center justify-between">
+                                            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">User Results</span>
+                                            {isSearching && <div className="w-3 h-3 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>}
+                                        </div>
+                                        
+                                        <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
+                                            {searchResults.length > 0 ? (
+                                                searchResults.map((result) => (
+                                                    <Link 
+                                                        key={result.id}
+                                                        to={`/profile/${result.id}`}
+                                                        onClick={() => {
+                                                            setSearchOpen(false);
+                                                            setSearchQuery("");
+                                                        }}
+                                                        className="flex items-center gap-3 p-3 hover:bg-white/5 transition-colors border-b border-white/5 last:border-0"
+                                                    >
+                                                        <UserAvatar 
+                                                            user={{
+                                                                id: result.id,
+                                                                raw_user_meta_data: {
+                                                                    avatar_url: result.avatar_url,
+                                                                    full_name: result.full_name
+                                                                }
+                                                            }}
+                                                            size="md"
+                                                            disableLink={true}
+                                                            className="w-10 h-10 ring-1 ring-white/10"
+                                                        />
+                                                        <div className="min-w-0 flex-1">
+                                                            <h4 className="text-sm font-bold text-white truncate">{result.full_name || "Unknown User"}</h4>
+                                                            <p className="text-xs text-gray-500 truncate">{result.email}</p>
+                                                        </div>
+                                                        <AtSymbolIcon className="w-4 h-4 text-gray-700" />
+                                                    </Link>
+                                                ))
+                                            ) : !isSearching ? (
+                                                <div className="p-10 text-center flex flex-col items-center gap-3">
+                                                    <div className="p-3 bg-white/5 rounded-full">
+                                                        <MagnifyingGlassIcon className="w-6 h-6 text-gray-700" />
+                                                    </div>
+                                                    <p className="text-sm text-gray-500">No members found with that email.</p>
+                                                </div>
+                                            ) : (
+                                                <div className="p-10 space-y-4">
+                                                    {[...Array(3)].map((_, i) => (
+                                                        <div key={i} className="flex items-center gap-3 opacity-50">
+                                                            <div className="w-10 h-10 rounded-full bg-white/10 animate-pulse"></div>
+                                                            <div className="flex-1 space-y-2">
+                                                                <div className="h-3 w-1/2 bg-white/10 rounded animate-pulse"></div>
+                                                                <div className="h-2 w-1/3 bg-white/10 rounded animate-pulse"></div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                             {/* ---------------------------------------------------- */}
 

@@ -13,21 +13,10 @@ const UserProfile = ({ user: propUser }) => {
     const { id } = useParams(); 
     const navigate = useNavigate();
 
-    const [profile, setProfile] = useState(() => {
-        // Pre-populate if viewing own profile and propUser exists
-        if (propUser && (!id || id === propUser.id)) {
-            return {
-                id: propUser.id,
-                full_name: propUser.user_metadata?.full_name || propUser.user_metadata?.name || "User",
-                avatar_url: propUser.user_metadata?.avatar_url || propUser.user_metadata?.picture || `https://ui-avatars.com/api/?name=${propUser.email}`
-            };
-        }
-        return null;
-    });
-
+    const [profile, setProfile] = useState(null);
     const [posts, setPosts] = useState([]);
     const [products, setProducts] = useState([]); 
-    const [isLoading, setIsLoading] = useState(!profile); // Chỉ loading nếu chưa có profile pre-fill
+    const [isLoading, setIsLoading] = useState(true); 
     
     // ... rest of state stays same ...
     const [isFollowing, setIsFollowing] = useState(false);
@@ -49,11 +38,13 @@ const UserProfile = ({ user: propUser }) => {
         return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
     };
 
+    const effectiveId = id || propUser?.id;
+    const lastIdRef = useRef(null);
+
+    // --- State & Handlers ---
     const fetchData = useCallback(async (silent = false) => {
-        if (!silent && !profile) setIsLoading(true);
-        
-        const activeUser = propUser;
-        const effectiveId = id || activeUser?.id;
+        // Chỉ hiện skeleton nếu KHÔNG PHẢI silent fetch và CHƯA CÓ data
+        if (!silent) setIsLoading(true);
         
         if (!effectiveId) {
             setIsLoading(false);
@@ -79,8 +70,8 @@ const UserProfile = ({ user: propUser }) => {
                 supabase.from('follows').select('following_id', { count: 'exact' }).eq('follower_id', effectiveId),
                 supabase.from('products').select('*').eq('user_id', effectiveId).order('created_at', { ascending: false }),
                 // Check follow status in parallel
-                (activeUser && activeUser.id !== effectiveId) 
-                    ? supabase.from('follows').select('follower_id').eq('follower_id', activeUser.id).eq('following_id', effectiveId).maybeSingle()
+                (propUser && propUser.id !== effectiveId) 
+                    ? supabase.from('follows').select('follower_id').eq('follower_id', propUser.id).eq('following_id', effectiveId).maybeSingle()
                     : Promise.resolve({ data: null })
             ]);
 
@@ -135,14 +126,22 @@ const UserProfile = ({ user: propUser }) => {
         } finally {
             setIsLoading(false);
         }
-    }, [id, propUser, profile]);
+    }, [effectiveId, propUser]); // profile removed to prevent recreation loop
 
+    // Effect để fetch data mỗi khi ID đổi HOẶC User session đổi
     useEffect(() => {
-        // Initial fetch only if not pre-populated
-        if (!profile) {
-            fetchData();
+        if (!effectiveId) return;
+
+        // Reset dữ liệu nếu ta đang chuyển sang một ID người dùng mới hoàn toàn
+        if (lastIdRef.current && lastIdRef.current !== effectiveId) {
+            setProfile(null);
+            setPosts([]);
+            setProducts([]);
         }
-    }, [id, fetchData, profile]); // Added missing dependencies to satisfy lint
+        
+        lastIdRef.current = effectiveId;
+        fetchData();
+    }, [effectiveId, fetchData]); 
 
     const handlePostUpdated = (updatedPost) => setPosts(prev => prev.map(p => p.id === updatedPost.id ? { ...p, ...updatedPost } : p));
     const handlePostDeleted = (deletedPostId) => {
@@ -234,7 +233,7 @@ const UserProfile = ({ user: propUser }) => {
     }
 
     return (
-        <div className="min-h-screen bg-[#05050A] text-gray-100 pb-20 relative isolate overflow-x-hidden">
+        <div className="min-h-screen bg-[#05050A] text-gray-100 py-6 relative isolate overflow-x-hidden ">
             
             {/* Background Noise */}
             <div className="fixed inset-0 z-0 pointer-events-none opacity-[0.03]" style={{backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`}}></div>

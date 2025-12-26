@@ -1,11 +1,11 @@
 // src/components/LazyLoading.jsx
 import React from 'react';
 
-const LazyLoading = ({ status = "Loading..." }) => {
+const LazyLoading = ({ status = "Loading...", isExiting = false }) => {
     return (
         // 1. Z-Index cực cao (10000) để đè lên tất cả
         // 2. Nền #05050A để đồng bộ với Home
-        <div className="fixed inset-0 flex items-center justify-center bg-[#05050A] z-[10000]">
+        <div className={`fixed inset-0 flex items-center justify-center bg-[#05050A] z-[10000] ${isExiting ? 'animate-splash-exit' : ''}`}>
             
             {/* --- BACKGROUND EFFECTS --- */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[30rem] h-[30rem] bg-cyan-900/10 rounded-full blur-[100px] pointer-events-none"></div>
