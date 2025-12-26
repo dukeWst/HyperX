@@ -38,7 +38,7 @@ function splitMarkdownStable(text = "") {
 const escapeMarkdownDuringTyping = (text = "", isTyping = false) => { if (!isTyping || !text) return text; return text.replace(/\*/g, "\\*").replace(/_/g, "\\_"); };
 
 // --- COMPONENT: Message Bubble ---
-const Message = ({ msg, isLast, isTyping, currentUser }) => {
+const Message = ({ msg, isTyping, currentUser }) => {
   const [isCopied, setIsCopied] = useState(false);
   const isUser = msg.role === "user";
   
@@ -54,10 +54,6 @@ const Message = ({ msg, isLast, isTyping, currentUser }) => {
 
   const isAssistantThinking = !isUser && msg.isThinking && isTyping;
   const isAssistantTyping = !isUser && msg.isPlaceholder && isTyping && msg.content && (msg.content + "").length > 0;
-  let displayContent = msg.content || "";
-  if (isAssistantThinking) displayContent = "Thinking...";
-  else if (isAssistantTyping) displayContent = escapeMarkdownDuringTyping(msg.content || "", true);
-  else if (!isUser) displayContent = msg.content || "";
 
   const canShowCopyButton = !isUser && !msg.isPlaceholder && !msg.isThinking && msg.content && typeof msg.content === 'string' && msg.content.trim() !== "";
 
@@ -174,6 +170,37 @@ const Message = ({ msg, isLast, isTyping, currentUser }) => {
   );
 };
 
+// --- COMPONENT: Page Skeleton ---
+const PageSkeleton = () => (
+  <div className="flex flex-col items-center justify-center flex-1 w-full max-w-4xl mx-auto px-4 relative z-10">
+    <div className="text-center mb-12 space-y-8 flex flex-col items-center">
+      {/* Premium Circular Loader */}
+      <div className="mb-8 relative flex items-center justify-center">
+        <div className="premium-loader" />
+        <Bot size={32} className="absolute text-cyan-400 opacity-20 animate-pulse" />
+      </div>
+      
+      {/* Skeleton Title */}
+      <div className="h-10 md:h-14 w-64 md:w-96 skeleton-cyan rounded-2xl" />
+      
+      {/* Skeleton Subtitle */}
+      <div className="space-y-3 mt-4 flex flex-col items-center w-full">
+        <div className="h-4 w-72 md:w-[30rem] skeleton-cyan rounded-full opacity-60" />
+        <div className="h-4 w-48 md:w-80 skeleton-cyan rounded-full opacity-40" />
+      </div>
+
+      <div className="mt-8">
+        <span className="text-xs font-bold uppercase tracking-[0.3em] text-cyan-500/50 animate-pulse">
+            Loading...
+        </span>
+      </div>
+    </div>
+    
+    {/* Skeleton Input Area */}
+    <div className="w-full max-w-3xl h-16 skeleton-cyan rounded-2xl mt-4" style={{ opacity: 0.15 }} />
+  </div>
+);
+
 // --- MAIN PAGE ---
 export default function ChatbotAIPage({ user }) {
   const [messages, setMessages] = useState(initialMessages);
@@ -185,6 +212,7 @@ export default function ChatbotAIPage({ user }) {
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
 
   const [abortCtrl, setAbortCtrl] = useState(null);
   const simIntervalRef = useRef(null);
@@ -193,61 +221,17 @@ export default function ChatbotAIPage({ user }) {
   const messagesEndRef = useRef(null);
   const dropRef = useRef(null);
 
-  useEffect(() => { isTypingRef.current = isTyping; }, [isTyping]);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => { if (isMenuOpen && !event.target.closest('.input-area-wrapper')) setIsMenuOpen(false); };
-    document.addEventListener("mousedown", handleClickOutside); return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isMenuOpen]);
-
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      if (user?.id) {
-        const { data, error } = await supabase.from("profiles").select("id, full_name, avatar_url, email").eq("id", user.id).single();
-        if (error) setUserProfile(user);
-        else setUserProfile({ ...user, full_name: data.full_name || user.full_name, avatar_url: data.avatar_url || user.avatar_url, email: data.email || user.email });
-      } else setUserProfile(null);
-    };
-    fetchUserProfile();
-  }, [user]);
-
-  useEffect(() => {
-    if (!isChatStarted) return;
-    const el = msgContainerRef.current;
-    if (!el) return;
-    const isBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 200;
-    if (isBottom) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-  }, [messages, isChatStarted]);
-
-  // Drag & Drop logic
-  useEffect(() => {
-    const dropArea = dropRef.current;
-    if (!dropArea) return;
-    const preventDefaults = (e) => { e.preventDefault(); e.stopPropagation(); };
-    const highlight = () => dropArea.classList.add("border-cyan-500", "bg-cyan-500/5");
-    const unhighlight = () => dropArea.classList.remove("border-cyan-500", "bg-cyan-500/5");
-    const handleDrop = (e) => {
-      preventDefaults(e); if (isTypingRef.current) return;
-      const file = e.dataTransfer.files?.[0]; if (file) handleFileSelect(file);
-      unhighlight();
-    };
-    ["dragenter", "dragover", "dragleave", "drop"].forEach((evt) => dropArea.addEventListener(evt, preventDefaults));
-    ["dragenter", "dragover"].forEach((evt) => dropArea.addEventListener(evt, highlight));
-    ["dragleave", "drop"].forEach((evt) => dropArea.addEventListener(evt, unhighlight));
-    dropArea.addEventListener("drop", handleDrop);
-    return () => { try { ["dragenter", "dragover", "dragleave", "drop"].forEach((evt) => dropArea.removeEventListener(evt, preventDefaults)); dropArea.removeEventListener("drop", handleDrop); } catch (e) {} };
-  }, []);
-
+  // --- HELPERS / HANDLERS ---
   const showAlert = (text, type = "info", ms = 4000) => { setAlert({ text, type }); setTimeout(() => setAlert(null), ms); };
   const handleCancelFile = useCallback(() => { setSelectedFile(null); setPreviewUrl(null); }, []);
   const handleFileSelect = useCallback(async (file) => {
     if (!file) return; if (file.size > 5 * 1024 * 1024) { showAlert("File size exceeds 5MB.", "error"); return; }
     setSelectedFile(file);
-    try { if (file.type.startsWith("image/")) { setPreviewUrl(URL.createObjectURL(file)); } else { setPreviewUrl(null); } } catch (err) { setPreviewUrl(null); }
+    try { if (file.type.startsWith("image/")) { setPreviewUrl(URL.createObjectURL(file)); } else { setPreviewUrl(null); } } catch { setPreviewUrl(null); }
   }, []);
 
   const handleStop = useCallback(() => {
-    if (abortCtrl) try { abortCtrl.abort(); } catch (e) {}
+    if (abortCtrl) try { abortCtrl.abort(); } catch { /* ignore abort error */ }
     if (simIntervalRef.current) { clearInterval(simIntervalRef.current); simIntervalRef.current = null; }
     setIsTyping(false); setAbortCtrl(null);
     setMessages((prev) => prev.map((m) => (m.isPlaceholder ? { ...m, isPlaceholder: false, isThinking: false } : m)));
@@ -259,7 +243,7 @@ export default function ChatbotAIPage({ user }) {
     if (!apiKey) { setAlert({ text: "Missing API Key", type: "error" }); return { responseText: "API Key Error", sources: [] }; }
     const userContentParts = [{ text: userPrompt }];
     if (imageFile) {
-      try { const base64 = await convertToBase64(imageFile); const pure = base64.split(",")[1]; userContentParts.push({ inline_data: { mime_type: imageFile.type, data: pure } }); } catch (err) {}
+      try { const base64 = await convertToBase64(imageFile); const pure = base64.split(",")[1]; userContentParts.push({ inline_data: { mime_type: imageFile.type, data: pure } }); } catch { /* ignore base64 error */ }
     }
     const payload = {
       contents: [...chatHistory, { role: "user", parts: userContentParts }],
@@ -302,25 +286,75 @@ export default function ChatbotAIPage({ user }) {
     try {
       const { responseText, sources } = await callGeminiApi(prompt || "", chatHistory, fileToSend, onChunk);
       setMessages((prev) => prev.map((m) => (m.id === botPlaceholderId ? { ...m, content: responseText, sources, isPlaceholder: false, isThinking: false } : m)));
-    } catch (err) { setMessages((prev) => prev.map((m) => (m.id === botPlaceholderId ? { ...m, content: "Error receiving response.", isPlaceholder: false, isThinking: false } : m))); } finally { setIsTyping(false); }
+    } catch { setMessages((prev) => prev.map((m) => (m.id === botPlaceholderId ? { ...m, content: "Error receiving response.", isPlaceholder: false, isThinking: false } : m))); } finally { setIsTyping(false); }
   }, [input, selectedFile, isTyping, isChatStarted, previewUrl, messages, callGeminiApi, setIsMenuOpen]);
+
+  // --- EFFECTS ---
+  useEffect(() => { isTypingRef.current = isTyping; }, [isTyping]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => { if (isMenuOpen && !event.target.closest('.input-area-wrapper')) setIsMenuOpen(false); };
+    document.addEventListener("mousedown", handleClickOutside); return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isMenuOpen]);
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      setIsProfileLoading(true);
+      if (user?.id) {
+        const { data, error } = await supabase.from("profiles").select("id, full_name, avatar_url, email").eq("id", user.id).single();
+        if (error) setUserProfile(user);
+        else setUserProfile({ ...user, full_name: data.full_name || user.full_name, avatar_url: data.avatar_url || user.avatar_url, email: data.email || user.email });
+      } else setUserProfile(null);
+      setIsProfileLoading(false);
+    };
+    fetchUserProfile();
+  }, [user]);
+
+  useEffect(() => {
+    if (!isChatStarted) return;
+    const el = msgContainerRef.current;
+    if (!el) return;
+    const isBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 200;
+    if (isBottom) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+  }, [messages, isChatStarted]);
+
+  // Drag & Drop logic
+  useEffect(() => {
+    const dropArea = dropRef.current;
+    if (!dropArea) return;
+    const preventDefaults = (e) => { e.preventDefault(); e.stopPropagation(); };
+    const highlight = () => dropArea.classList.add("border-cyan-500", "bg-cyan-500/5");
+    const unhighlight = () => dropArea.classList.remove("border-cyan-500", "bg-cyan-500/5");
+    const handleDrop = (e) => {
+      preventDefaults(e); if (isTypingRef.current) return;
+      const file = e.dataTransfer.files?.[0]; if (file) handleFileSelect(file);
+      unhighlight();
+    };
+    ["dragenter", "dragover", "dragleave", "drop"].forEach((evt) => dropArea.addEventListener(evt, preventDefaults));
+    ["dragenter", "dragover"].forEach((evt) => dropArea.addEventListener(evt, highlight));
+    ["dragleave", "drop"].forEach((evt) => dropArea.addEventListener(evt, unhighlight));
+    dropArea.addEventListener("drop", handleDrop);
+    return () => { try { ["dragenter", "dragover", "dragleave", "drop"].forEach((evt) => dropArea.removeEventListener(evt, preventDefaults)); dropArea.removeEventListener("drop", handleDrop); } catch { /* ignore error on cleanup */ } };
+  }, [handleFileSelect, isTypingRef]);
 
   return (
     <div className="bg-[#05050A] text-gray-300 font-sans h-screen w-screen overflow-hidden flex flex-col pt-16 relative isolate">
       
-      {/* UPDATED: Background Effects to Cyan/Blue */}
+      {/* Background Effects */}
       <div className="fixed inset-0 z-0 pointer-events-none opacity-[0.03]" style={{backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`}}></div>
       <div className="fixed top-0 left-1/2 -translate-x-1/2 -z-10 w-[60rem] h-[60rem] bg-cyan-900/10 rounded-full blur-[120px] pointer-events-none"></div>
       <div className="fixed bottom-0 right-0 -z-10 w-[50rem] h-[50rem] bg-blue-900/10 rounded-full blur-[120px] pointer-events-none"></div>
 
-      {isChatStarted ? (
+      {isProfileLoading ? (
+        <PageSkeleton />
+      ) : isChatStarted ? (
         <div className="flex flex-col flex-1 h-full w-full max-w-5xl mx-auto relative z-10">
           
           {/* Chat History Area */}
           <div ref={msgContainerRef} className="flex-1 overflow-y-auto px-4 md:px-6 pt-6 pb-4 custom-scrollbar scroll-smooth">
             <div className="max-w-3xl mx-auto w-full">
-                {messages.map((msg, idx) => (
-                <Message key={msg.id} msg={msg} isLast={idx === messages.length - 1} currentUser={userProfile} isTyping={isTyping} />
+                {messages.map((msg) => (
+                <Message key={msg.id} msg={msg} currentUser={userProfile} isTyping={isTyping} />
                 ))}
                 <div ref={messagesEndRef} />
             </div>
@@ -350,12 +384,14 @@ export default function ChatbotAIPage({ user }) {
         // Welcome Screen
         <div className="flex flex-col items-center justify-center flex-1 w-full max-w-4xl mx-auto px-4 relative z-10">
           <div className="text-center mb-12 space-y-6 animate-in fade-in zoom-in duration-500">
-            {/* UPDATED: Logo Container */}
+            {/* Logo Container */}
             <div className="inline-flex items-center justify-center w-24 h-24 rounded-[2rem] bg-gradient-to-br from-cyan-500 to-blue-600 shadow-[0_0_50px_rgba(34,211,238,0.4)] mb-4 ring-1 ring-white/20">
                 <Bot size={48} className="text-white" />
             </div>
             <h1 className="text-4xl md:text-6xl font-bold text-white tracking-tight">
-              Hello, <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400">{userProfile?.full_name || "Creator"}</span>
+              Hello, <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400">
+                  {userProfile?.full_name || "Creator"}
+              </span>
             </h1>
             <p className="text-xl text-gray-400 max-w-xl mx-auto font-light leading-relaxed">
               I'm HyperX AI. Ready to assist with code, creativity, and complexity.

@@ -110,7 +110,7 @@ export default function App() {
   }, []);
 
   if (isAuthLoading) {
-    return <LazyLoading status="Checking session..." />;
+    return <LazyLoading status="Loading..." />;
   }
 
   return (

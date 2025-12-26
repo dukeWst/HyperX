@@ -40,7 +40,7 @@ const ProductList = ({ handleSearchSubmit, search, isLoading, products, formatCu
 
                         {/* Nút New Product - Thêm shadow Cyan */}
                         <Link to="/create-product">
-                            <button className="flex items-center gap-2 bg-cyan-600 hover:bg-cyan-500 text-black px-4 py-2.5 font-bold transition-all shadow-[0_0_20px_rgba(8,145,178,0.3)] hover:shadow-[0_0_25px_rgba(34,211,238,0.5)] active:scale-95 text-sm whitespace-nowrap">
+                            <button className="flex items-center gap-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white px-4 py-2.5 font-bold transition-all shadow-[0_0_20px_rgba(8,145,178,0.3)] hover:shadow-[0_0_25px_rgba(34,211,238,0.5)] active:scale-95 text-sm whitespace-nowrap">
                                 <Plus size={18} strokeWidth={2.5} />
                                 <span className="hidden sm:inline">New Product</span>
                             </button>

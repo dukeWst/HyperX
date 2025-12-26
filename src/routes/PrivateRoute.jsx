@@ -25,7 +25,7 @@ const PrivateRoute = () => {
     }, []);
 
     if (loading) {
-        return <LazyLoading status="Verifying access..." />;
+        return <LazyLoading status="Loading..." />;
     }
 
     if (session) {
