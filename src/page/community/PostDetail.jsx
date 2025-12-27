@@ -98,6 +98,7 @@ const PostDetail = () => {
                     post={post} 
                     currentUser={currentUser} 
                     onPostDeleted={handlePostDeleted} 
+                    onTagClick={(tag) => navigate(`/community?search=${encodeURIComponent(tag)}`)}
                 />
             </div>
         </div>

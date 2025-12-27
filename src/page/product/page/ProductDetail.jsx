@@ -6,7 +6,8 @@ import {
     ArrowLeft, Package, Edit, Trash2,
     DollarSign, Clock, CheckCircle2,
     ArrowRight, ChevronLeft, ChevronRight,
-    X, Download, AlertTriangle, MoreVertical, Monitor
+    X, Download, AlertTriangle, MoreVertical, Monitor,
+    Mail
 } from 'lucide-react';
 
 import UserAvatar from '../../../components/UserAvatar';
@@ -129,12 +130,7 @@ const ProductDetail = () => {
         return product.tag.filter(t => KNOWN_OS.includes(t));
     };
 
-    if (isLoading) return (
-        <main className="min-h-screen bg-[#05050A] flex items-center justify-center">
-            {/* UPDATED: Cyan spinner */}
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500"></div>
-        </main>
-    );
+    if (isLoading) return <ProductDetailSkeleton />;
 
     if (!product) return (
         <main className="min-h-screen bg-[#05050A] flex flex-col items-center justify-center text-gray-400 gap-4">
@@ -200,72 +196,127 @@ const ProductDetail = () => {
 
                     {/* LEFT SIDE: Image & Actions */}
                     <div className="lg:col-span-5 space-y-6">
-                        <div className="bg-[#0B0D14] p-2 rounded-2xl border border-white/10 shadow-2xl">
-                            <div className="aspect-square bg-gray-900 rounded-xl overflow-hidden flex items-center justify-center relative group">
-                                {product.image_url ? (
-                                    <img src={product.image_url} alt={product.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                                ) : (
-                                    <Package size={80} className="text-gray-700" />
-                                )}
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                            </div>
-                        </div>
-
-                        <div className="bg-[#0B0D14]/60 backdrop-blur-md p-5 rounded-2xl border border-white/10 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <UserAvatar user={uploaderForAvatar} size="md" />
-                                <div>
-                                    <p className="text-xs text-gray-500 uppercase font-bold tracking-wider mb-0.5">Creator</p>
-                                    <p className="text-white font-medium text-sm">{userName}</p>
+                        <div className="group relative">
+                            <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition duration-500"></div>
+                            <div className="relative bg-[#0B0D14] p-2 rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
+                                <div className="aspect-square bg-gray-900/50 rounded-xl overflow-hidden flex items-center justify-center relative">
+                                    {product.image_url ? (
+                                        <img src={product.image_url} alt={product.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                                    ) : (
+                                        <Package size={80} className="text-gray-700" />
+                                    )}
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60"></div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* UPDATED: Download Button with Cyan/Blue Gradient */}
-                        <button
-                            onClick={() => setShowModal(true)}
-                            className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 p-4 text-white font-bold text-lg shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/40 hover:-translate-y-0.5 transition-all duration-300 flex items-center justify-center gap-2"
-                        >
-                            <Download size={20} />
-                            Download Now 
-                            <span className="bg-black/20 px-2 py-0.5 rounded text-sm ml-1 font-medium border border-white/10">
-                                {formatCurrency(product.price)}
-                            </span>
-                        </button>
+                        {/* ENHANCED CREATOR CARD */}
+                        <div className="bg-[#0B0D14]/40 backdrop-blur-xl p-6 rounded-2xl border border-white/10 relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                                <Package size={80} className="rotate-12" />
+                            </div>
+                            <div className="relative flex items-center gap-4">
+                                <div className="relative">
+                                    <div className="absolute -inset-1 bg-cyan-500/20 rounded-full blur group-hover:opacity-100 opacity-0 transition"></div>
+                                    <UserAvatar user={uploaderForAvatar} size="lg" className="relative border-2 border-white/10" />
+                                </div>
+                                <div className="min-w-0">
+                                    <p className="text-[10px] text-cyan-500 uppercase font-black tracking-[0.2em] mb-1">Published By</p>
+                                    <h3 className="text-white font-bold text-lg truncate mb-0.5">{userName}</h3>
+                                    <div className="flex items-center gap-1.5 text-gray-400">
+                                        <Mail size={12} className="text-gray-600" />
+                                        <p className="text-xs truncate font-medium">{userEmail}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* ACTIONS */}
+                        <div className="space-y-3">
+                            <button
+                                onClick={() => setShowModal(true)}
+                                className="w-full relative group overflow-hidden bg-gradient-to-r from-cyan-600 to-blue-600 rounded-xl p-4 text-white font-bold text-lg transition-all duration-300 hover:shadow-[0_0_30px_rgba(8,145,178,0.4)] hover:-translate-y-0.5 active:scale-[0.98]"
+                            >
+                                <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                                <div className="relative flex items-center justify-center gap-3">
+                                    <Download size={22} className="group-hover:bounce" />
+                                    <span>Get {product.name}</span>
+                                    <span className="bg-black/20 px-3 py-1 rounded-lg text-sm font-mono border border-white/10">
+                                        {formatCurrency(product.price)}
+                                    </span>
+                                </div>
+                            </button>
+                            
+                            <p className="text-[10px] text-center text-gray-500 font-medium uppercase tracking-widest">
+                                Safe & Secure Checkout with HyperX
+                            </p>
+                        </div>
                     </div>
 
                     {/* RIGHT SIDE: Details */}
-                    <div className="lg:col-span-7 space-y-8">
-                        <div>
-                            <div className="flex flex-wrap gap-2 mb-4">
+                    <div className="lg:col-span-7 space-y-10">
+                        <div className="space-y-4">
+                            <div className="flex flex-wrap gap-2">
                                 {availableOS.map(os => (
-                                    <span key={os} className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-gray-400 text-xs font-medium flex items-center gap-1.5 hover:text-cyan-400 hover:border-cyan-500/30 transition-colors">
+                                    <span key={os} className="px-3 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-cyan-500/20 transition-all cursor-default">
                                         <Monitor size={12} /> {os}
                                     </span>
                                 ))}
+                                {product.tag?.map(t => !KNOWN_OS.includes(t) && (
+                                    <span key={t} className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-gray-400 text-[10px] font-black uppercase tracking-widest">
+                                        {t}
+                                    </span>
+                                ))}
                             </div>
-                            <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tight mb-4">{product.name}</h1>
-                            <p className="text-xl text-gray-400 font-light leading-relaxed">{product.description || "No description provided."}</p>
+                            
+                            <h1 className="text-5xl md:text-6xl font-black text-white tracking-tighter leading-none">
+                                {product.name}
+                            </h1>
+                            
+                            <div className="h-1 w-20 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full"></div>
+                            
+                            <p className="text-lg md:text-xl text-gray-400 font-light leading-relaxed max-w-2xl">
+                                {product.description || "No description provided."}
+                            </p>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="bg-[#0B0D14]/40 p-5 rounded-2xl border border-white/5">
-                                <p className="text-gray-500 text-xs uppercase font-bold mb-1">Release Date</p>
-                                <p className="text-white font-mono">{new Date(product.created_at).toLocaleDateString()}</p>
+                            <div className="group bg-[#0B0D14]/40 backdrop-blur-md p-6 rounded-2xl border border-white/10 hover:border-cyan-500/30 transition-all">
+                                <div className="flex items-center gap-3 mb-2">
+                                    <div className="p-2 bg-cyan-500/10 rounded-lg text-cyan-400">
+                                        <Clock size={18} />
+                                    </div>
+                                    <p className="text-gray-500 text-[10px] uppercase font-black tracking-widest">Release Date</p>
+                                </div>
+                                <p className="text-white font-mono text-lg">{new Date(product.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
                             </div>
-                            <div className="bg-[#0B0D14]/40 p-5 rounded-2xl border border-white/5">
-                                <p className="text-gray-500 text-xs uppercase font-bold mb-1">License Type</p>
-                                <p className="text-white font-mono">{product.price === 0 ? "Open Source (Free)" : "Commercial License"}</p>
+                            
+                            <div className="group bg-[#0B0D14]/40 backdrop-blur-md p-6 rounded-2xl border border-white/10 hover:border-blue-500/30 transition-all">
+                                <div className="flex items-center gap-3 mb-2">
+                                    <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
+                                        <CheckCircle2 size={18} />
+                                    </div>
+                                    <p className="text-gray-500 text-[10px] uppercase font-black tracking-widest">License Type</p>
+                                </div>
+                                <p className="text-white font-mono text-lg">{product.price === 0 ? "Open Source / Free" : "Pro Commercial License"}</p>
                             </div>
                         </div>
 
                         {product.instructions && (
-                            <div className="bg-[#0B0D14]/60 backdrop-blur-sm p-6 rounded-2xl border border-white/10">
-                                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                                    <CheckCircle2 size={20} className="text-cyan-500" /> Installation Instructions
-                                </h3>
-                                <div className="prose prose-invert prose-sm max-w-none text-gray-300 whitespace-pre-line font-mono bg-black/30 p-4 rounded-lg border border-white/5">
-                                    {product.instructions}
+                            <div className="relative group">
+                                <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500/10 to-transparent rounded-2xl blur opacity-50"></div>
+                                <div className="relative bg-[#0B0D14]/80 backdrop-blur-sm p-8 rounded-2xl border border-white/10">
+                                    <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-lg bg-cyan-500 flex items-center justify-center text-black">
+                                            <Monitor size={18} />
+                                        </div>
+                                        Setup & Installation
+                                    </h3>
+                                    <div className="prose prose-invert prose-sm max-w-none">
+                                        <div className="font-mono text-sm text-gray-300 leading-relaxed bg-black/40 p-6 rounded-xl border border-white/5 whitespace-pre-line selection:bg-cyan-500/30">
+                                            {product.instructions}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         )}
@@ -303,7 +354,7 @@ const ProductDetail = () => {
                                 <Link 
                                     to={`/product/${item.id}`} 
                                     key={item.id} 
-                                    className="min-w-[280px] md:min-w-[320px] snap-start group block bg-[#0B0D14] border border-white/10 rounded-2xl overflow-hidden hover:border-cyan-500/30 transition-all duration-300 hover:-translate-y-1 relative"
+                                    className="w-[280px] md:w-[320px] flex-shrink-0 snap-start group block bg-[#0B0D14] border border-white/10 rounded-2xl overflow-hidden hover:border-cyan-500/30 transition-all duration-300 hover:-translate-y-1 relative"
                                 >
                                     {/* UPDATED: Glow Effect */}
                                     <div className="absolute -inset-0.5 bg-gradient-to-b from-cyan-500 to-blue-600 rounded-2xl opacity-0 group-hover:opacity-30 blur transition duration-500"></div>
@@ -380,3 +431,73 @@ const ProductDetail = () => {
 };
 
 export default ProductDetail;
+
+// --- SKELETON COMPONENTS ---
+const ProductDetailSkeleton = () => (
+    <main className="bg-[#05050A] min-h-screen pt-20 pb-12 relative isolate overflow-hidden">
+        <div className="fixed inset-0 z-0 pointer-events-none opacity-[0.03]" style={{backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`}}></div>
+        <div className="p-4 md:px-8 max-w-7xl mx-auto relative z-10">
+            <div className="flex justify-between items-center mb-8">
+                <div className="h-6 w-32 skeleton rounded-md opacity-50"></div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 mb-16">
+                {/* LEFT SIDE */}
+                <div className="lg:col-span-5 space-y-6">
+                    <div className="bg-[#0B0D14] p-2 rounded-2xl border border-white/10 shadow-2xl">
+                        <div className="aspect-square skeleton-cyan rounded-xl"></div>
+                    </div>
+                    {/* ENHANCED CREATOR SKELETON */}
+                    <div className="bg-[#0B0D14]/60 p-6 rounded-2xl border border-white/10 flex items-center gap-4">
+                        <div className="w-14 h-14 rounded-full skeleton opacity-50"></div>
+                        <div className="flex-1 space-y-2">
+                            <div className="h-3 w-20 skeleton rounded opacity-30"></div>
+                            <div className="h-5 w-32 skeleton rounded opacity-50"></div>
+                            <div className="h-3 w-40 skeleton rounded opacity-20"></div>
+                        </div>
+                    </div>
+                    <div className="h-16 w-full skeleton-cyan rounded-xl"></div>
+                </div>
+
+                {/* RIGHT SIDE */}
+                <div className="lg:col-span-7 space-y-10">
+                    <div className="space-y-6">
+                        <div className="flex gap-2">
+                            <div className="h-7 w-24 skeleton rounded-lg opacity-30"></div>
+                            <div className="h-7 w-24 skeleton rounded-lg opacity-20"></div>
+                        </div>
+                        <div className="h-16 w-3/4 skeleton rounded-xl"></div>
+                        <div className="h-1 w-20 skeleton rounded-full opacity-40"></div>
+                        <div className="space-y-3">
+                            <div className="h-5 w-full skeleton rounded opacity-40"></div>
+                            <div className="h-5 w-5/6 skeleton rounded opacity-30"></div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="h-24 skeleton rounded-2xl opacity-20"></div>
+                        <div className="h-24 skeleton rounded-2xl opacity-20"></div>
+                    </div>
+
+                    <div className="h-64 skeleton rounded-2xl opacity-10"></div>
+                </div>
+            </div>
+
+            {/* RELATED PRODUCTS SKELETON */}
+            <div className="border-t border-white/10 pt-10">
+                <div className="flex justify-between items-center mb-6">
+                    <div className="h-10 w-56 skeleton rounded-xl"></div>
+                    <div className="flex gap-2">
+                        <div className="h-10 w-10 skeleton rounded-full opacity-30"></div>
+                        <div className="h-10 w-10 skeleton rounded-full opacity-30"></div>
+                    </div>
+                </div>
+                <div className="flex gap-6 overflow-hidden">
+                    {[...Array(4)].map((_, i) => (
+                        <div key={i} className="min-w-[320px] aspect-video skeleton rounded-2xl opacity-20"></div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    </main>
+);

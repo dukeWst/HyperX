@@ -425,7 +425,7 @@ const Header = ({ user }) => {
                                                                 {getNotiContent(noti)}
                                                             </p>
                                                             <p className="text-xs text-gray-600 mt-1.5 font-medium">
-                                                                {new Date(noti.created_at).toLocaleDateString()} • {new Date(noti.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                                                {new Date(noti.created_at).toLocaleDateString('en-US')} • {new Date(noti.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                                                             </p>
                                                         </div>
                                                     </div>

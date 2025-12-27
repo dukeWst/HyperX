@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../../routes/supabaseClient";
 import { Search, Plus, MessageSquare, TrendingUp, Users } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import PostFormModal from "./PostFormModal";
 import PostItem from "./PostItem";
 
@@ -11,7 +11,26 @@ export default function Community({ user }) {
     const [form, setForm] = useState({ title: "", content: "" });
     const [currentUser, setCurrentUser] = useState(null);
     const [showModal, setShowModal] = useState(false);
-    const [searchQuery, setSearchQuery] = useState("");
+    const [searchParams, setSearchParams] = useSearchParams();
+    const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
+    const [totalMembers, setTotalMembers] = useState(0);
+    const [onlineCount, setOnlineCount] = useState(0);
+
+    useEffect(() => {
+        const query = searchParams.get("search");
+        if (query !== null) {
+            setSearchQuery(query);
+        }
+    }, [searchParams]);
+
+    const handleSearchChange = (val) => {
+        setSearchQuery(val);
+        if (val) {
+            setSearchParams({ search: val }, { replace: true });
+        } else {
+            setSearchParams({}, { replace: true });
+        }
+    };
 
     useEffect(() => {
         const load = async () => {
@@ -21,9 +40,41 @@ export default function Community({ user }) {
                 u = data.user;
             }
             setCurrentUser(u);
+            
+            // Fecth Total Members
+            const { count } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+            setTotalMembers(count || 0);
         };
         load();
     }, [user]);
+
+    // Supabase Presence Tracking
+    useEffect(() => {
+        const channel = supabase.channel('online-users', {
+            config: {
+                presence: {
+                    key: currentUser?.id || 'anonymous-' + Math.random().toString(36).substr(2, 9),
+                },
+            },
+        });
+
+        channel
+            .on('presence', { event: 'sync' }, () => {
+                const state = channel.presenceState();
+                setOnlineCount(Object.keys(state).length);
+            })
+            .subscribe(async (status) => {
+                if (status === 'SUBSCRIBED') {
+                    await channel.track({
+                        online_at: new Date().toISOString(),
+                    });
+                }
+            });
+
+        return () => {
+            channel.unsubscribe();
+        };
+    }, [currentUser]);
 
     const loadPosts = useCallback(async () => {
         // Ưu tiên lấy từ view
@@ -130,7 +181,13 @@ export default function Community({ user }) {
                         <h2 className="text-white font-bold text-lg mb-4 flex items-center gap-2"><TrendingUp size={20} className="text-cyan-400"/> Trending</h2>
                         <ul className="space-y-3">
                             {['#ArtificialIntelligence', '#WebDevelopment', '#OpenSource', '#ReactJS'].map(tag => (
-                                <li key={tag} className="text-sm text-gray-400 hover:text-cyan-400 cursor-pointer transition-colors block px-2 py-1 rounded hover:bg-white/5">{tag}</li>
+                                <li 
+                                    key={tag} 
+                                    onClick={() => handleSearchChange(tag)}
+                                    className="text-sm text-gray-400 hover:text-cyan-400 cursor-pointer transition-colors block px-2 py-1 rounded hover:bg-white/5"
+                                >
+                                    {tag}
+                                </li>
                             ))}
                         </ul>
                     </div>
@@ -167,7 +224,7 @@ export default function Community({ user }) {
                                         type="text"
                                         placeholder="Search discussions..."
                                         value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        onChange={(e) => handleSearchChange(e.target.value)}
                                         className="block w-full pl-10 pr-3 py-2.5 border border-white/10 rounded-xl bg-white/5 text-gray-300 placeholder-gray-500 focus:outline-none focus:bg-black/40 focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 sm:text-sm transition-all"
                                     />
                                 </div>
@@ -201,7 +258,7 @@ export default function Community({ user }) {
                         ) : (
                             <div className="space-y-6 max-w-3xl mx-auto"> 
                                 {filteredPosts.map((post) => (
-                                    post ? <PostItem key={post.id} post={post} currentUser={currentUser} onPostDeleted={handlePostDeleted} /> : null
+                                    post ? <PostItem key={post.id} post={post} currentUser={currentUser} onPostDeleted={handlePostDeleted} onTagClick={handleSearchChange} /> : null
                                 ))}
                             </div>
                         )}
@@ -214,11 +271,13 @@ export default function Community({ user }) {
                         <h2 className="text-white font-bold mb-4 flex items-center gap-2"><Users size={18} className="text-cyan-400"/> Community Stats</h2>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="p-3 bg-white/5 rounded-xl text-center border border-white/5 hover:border-white/10 transition-colors">
-                                <div className="text-xl font-bold text-white">2.4k</div>
+                                <div className="text-xl font-bold text-white">
+                                    {totalMembers > 999 ? (totalMembers / 1000).toFixed(1) + 'k' : totalMembers}
+                                </div>
                                 <div className="text-xs text-gray-500 uppercase font-bold">Members</div>
                             </div>
                             <div className="p-3 bg-white/5 rounded-xl text-center border border-white/5 hover:border-cyan-500/20 transition-colors">
-                                <div className="text-xl font-bold text-cyan-400">850</div>
+                                <div className="text-xl font-bold text-cyan-400">{onlineCount}</div>
                                 <div className="text-xs text-gray-500 uppercase font-bold">Online</div>
                             </div>
                         </div>

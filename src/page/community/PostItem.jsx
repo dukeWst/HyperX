@@ -7,8 +7,34 @@ import DeleteConfirmModal from "./DeleteConfirmModal";
 import { supabase } from "../../routes/supabaseClient";
 import PostFormModal from "./PostFormModal";
 
-// --- SUB-COMPONENT: CommentItem (Không đổi) ---
-const CommentItem = memo(({ comment, allComments, currentUser, onDelete, onReplySuccess, depth = 0, highlightId }) => {
+// --- HELPER: Render content with clickable hashtags ---
+const renderContentWithHashtags = (content, onTagClick) => {
+    if (!content) return null;
+    
+    // Tách nội dung bằng khoảng trắng để tìm hashtag
+    const parts = content.split(/(\s+)/);
+    
+    return parts.map((part, index) => {
+        if (part.startsWith('#') && part.length > 1) {
+            return (
+                <span 
+                    key={index} 
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        if (onTagClick) onTagClick(part);
+                    }}
+                    className="text-cyan-400 font-medium hover:text-cyan-300 cursor-pointer transition-colors"
+                >
+                    {part}
+                </span>
+            );
+        }
+        return part;
+    });
+};
+
+// --- SUB-COMPONENT: CommentItem (Cập nhật onTagClick) ---
+const CommentItem = memo(({ comment, allComments, currentUser, onDelete, onReplySuccess, depth = 0, highlightId, onTagClick }) => {
     const [likes, setLikes] = useState(0); 
     const [isLiked, setIsLiked] = useState(false);
     const [showReplyInput, setShowReplyInput] = useState(false);
@@ -126,7 +152,9 @@ const CommentItem = memo(({ comment, allComments, currentUser, onDelete, onReply
                             )}
                         </div>
                     </div>
-                    <p className="text-sm text-gray-300 leading-relaxed break-words font-light">{comment.content}</p>
+                    <p className="text-sm text-gray-300 leading-relaxed break-words font-light">
+                        {renderContentWithHashtags(comment.content, onTagClick)}
+                    </p>
                     <div className="flex items-center gap-4 mt-2">
                         <button onClick={handleLikeComment} className={`text-xs font-medium flex items-center gap-1 transition-colors ${isLiked ? 'text-red-500' : 'text-gray-500 hover:text-red-400'}`}>
                             <Heart size={12} fill={isLiked ? "currentColor" : "none"} /> {likes > 0 && likes}
@@ -143,14 +171,14 @@ const CommentItem = memo(({ comment, allComments, currentUser, onDelete, onReply
                     )}
                 </div>
             </div>
-            {childComments.map(child => (<CommentItem key={child.id} comment={child} allComments={allComments} currentUser={currentUser} onDelete={onDelete} onReplySuccess={onReplySuccess} depth={depth + 1} highlightId={highlightId} />))}
+            {childComments.map(child => (<CommentItem key={child.id} comment={child} allComments={allComments} currentUser={currentUser} onDelete={onDelete} onReplySuccess={onReplySuccess} depth={depth + 1} highlightId={highlightId} onTagClick={onTagClick} />))}
         </div>
     );
 });
 
 
 // --- MAIN POST COMPONENT ---
-const PostItem = ({ post: initialPost, currentUser, onPostDeleted, onPostUpdated }) => {
+const PostItem = ({ post: initialPost, currentUser, onPostDeleted, onPostUpdated, onTagClick }) => {
     // HOOKS MUST BE AT TOP (BEFORE ANY RETURNS)
     const [postData, setPostData] = useState(initialPost || {}); 
     const [likes, setLikes] = useState(initialPost?.like_count || 0); 
@@ -353,7 +381,9 @@ const PostItem = ({ post: initialPost, currentUser, onPostDeleted, onPostUpdated
                         </div>
                         {currentUser && currentUser.id === postData.user_id && (<div className="relative ml-2"><button onClick={() => setShowPostMenu(!showPostMenu)} className="text-gray-500 hover:text-white p-2 rounded-xl hover:bg-white/10 transition"><MoreHorizontal size={20} /></button>{showPostMenu && (<><div className="fixed inset-0 z-10" onClick={() => setShowPostMenu(false)}></div><div className="absolute right-0 top-10 z-20 w-40 bg-[#1A1D26] border border-white/10 rounded-xl shadow-2xl py-1 animate-in fade-in zoom-in duration-100"><button onClick={() => { setEditForm({ title: postData.title, content: postData.content }); setIsEditing(true); setShowPostMenu(false); }} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-cyan-400 hover:bg-white/5 text-left font-medium"><EditIcon size={14} /> Edit Post</button><button onClick={() => setDeletePostModalOpen(true)} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-400 hover:bg-white/5 text-left font-medium"><Trash2 size={14} /> Delete Post</button></div></>)}</div>)}
                     </div>
-                    <p className="text-gray-300 mt-4 whitespace-pre-line leading-relaxed break-words font-light text-base md:text-lg">{postData.content}</p>
+                    <p className="text-gray-300 mt-4 whitespace-pre-line leading-relaxed break-words font-light text-base md:text-lg">
+                        {renderContentWithHashtags(postData.content, onTagClick)}
+                    </p>
                 </div>
             </div>
 
@@ -383,7 +413,7 @@ const PostItem = ({ post: initialPost, currentUser, onPostDeleted, onPostUpdated
                         </div>
                     )}
                     <div className="space-y-4 max-h-[600px] overflow-y-auto custom-scrollbar pr-2">
-                        {loadingComments ? (<div className="flex justify-center py-6"><div className="w-6 h-6 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin"></div></div>) : rootComments.length === 0 ? (<p className="text-sm text-gray-500 italic text-center py-6">No comments yet. Start the conversation!</p>) : (rootComments.map((cmt) => (<CommentItem key={cmt.id} comment={cmt} allComments={comments} currentUser={currentUser} onDelete={requestDeleteComment} onReplySuccess={handleReplySuccess} depth={0} highlightId={highlightCommentId} />)))}
+                        {loadingComments ? (<div className="flex justify-center py-6"><div className="w-6 h-6 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin"></div></div>) : rootComments.length === 0 ? (<p className="text-sm text-gray-500 italic text-center py-6">No comments yet. Start the conversation!</p>) : (rootComments.map((cmt) => (<CommentItem key={cmt.id} comment={cmt} allComments={comments} currentUser={currentUser} onDelete={requestDeleteComment} onReplySuccess={handleReplySuccess} depth={0} highlightId={highlightCommentId} onTagClick={onTagClick} />)))}
                     </div>
                 </div>
             )}

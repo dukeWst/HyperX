@@ -281,7 +281,7 @@ const UserProfile = ({ user: propUser }) => {
                                         </div>
                                         <div className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
                                             <Calendar size={14} className="text-blue-400" />
-                                            <span>Joined {new Date(profile.created_at || Date.now()).toLocaleDateString()}</span>
+                                            <span>Joined {new Date(profile.created_at || Date.now()).toLocaleDateString('en-US')}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -383,7 +383,7 @@ const UserProfile = ({ user: propUser }) => {
                                                 <h3 className="text-white font-bold truncate group-hover:text-cyan-400 transition-colors uppercase text-sm tracking-tighter">
                                                     {u.full_name || "Unknown"}
                                                 </h3>
-                                                <p className="text-gray-500 text-xs truncate">Joined {new Date(u.created_at).toLocaleDateString()}</p>
+                                                <p className="text-gray-500 text-xs truncate">Joined {new Date(u.created_at).toLocaleDateString('en-US')}</p>
                                             </div>
                                             <ChevronRight size={16} className="text-gray-700 group-hover:text-cyan-400 group-hover:translate-x-1 transition-all" />
                                         </Link>
