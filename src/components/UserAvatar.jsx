@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../routes/supabaseClient';
 
-const UserAvatar = ({ user, size = "md", disableLink = false }) => {
+const UserAvatar = ({ user, size = "md", disableLink = false, className = "" }) => {
     if (!user) return null; 
 
     // 1. Lấy metadata và profile từ nhiều nguồn có thể
@@ -34,7 +34,7 @@ const UserAvatar = ({ user, size = "md", disableLink = false }) => {
                      "U";
     const userId = user.id || user.user_id; 
 
-    const dims = size === "sm" ? "w-8 h-8" : size === "xl" ? "w-32 h-32" : size === "md" ? "w-10 h-10" : "w-12 h-12"; 
+    const dims = size === "xs" ? "w-6 h-6" : size === "sm" ? "w-8 h-8" : size === "xl" ? "w-32 h-32" : size === "md" ? "w-10 h-10" : "w-12 h-12"; 
 
     // --- HÀM XỬ LÝ URL ẢNH ---
     const getEffectiveAvatarUrl = (path) => {
@@ -69,7 +69,7 @@ const UserAvatar = ({ user, size = "md", disableLink = false }) => {
                 <img 
                     src={finalAvatarUrl} 
                     alt={fullName} 
-                    className={`${dims} rounded-full object-cover border border-white/10 hover:opacity-80 transition-opacity bg-gray-800`} 
+                    className={`${dims} rounded-full object-cover border border-white/10 hover:opacity-80 transition-opacity bg-gray-800 ${className}`} 
                     onError={(e) => {
                         e.target.onerror = null; 
                         // Fallback về UI Avatars nếu ảnh lỗi
@@ -80,7 +80,7 @@ const UserAvatar = ({ user, size = "md", disableLink = false }) => {
                 <img
                     src={`https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=0891b2&color=fff&bold=true`}
                     alt={fullName}
-                    className={`${dims} rounded-full object-cover border border-white/10 hover:opacity-80 transition-opacity`}
+                    className={`${dims} rounded-full object-cover border border-white/10 hover:opacity-80 transition-opacity ${className}`}
                 />
             )}
         </>

@@ -4,6 +4,7 @@ import { Search, Plus, MessageSquare, TrendingUp, Users, Bot, Sparkles, ArrowRig
 import { Link, useSearchParams } from "react-router-dom";
 import PostFormModal from "./PostFormModal";
 import PostItem from "./PostItem";
+import UserAvatar from "../../components/UserAvatar";
 
 export default function Community({ user }) {
     const [posts, setPosts] = useState([]);
@@ -16,6 +17,8 @@ export default function Community({ user }) {
     const [totalMembers, setTotalMembers] = useState(0);
     const [onlineCount, setOnlineCount] = useState(0);
     const [trendingTags, setTrendingTags] = useState([]);
+    const [following, setFollowing] = useState([]);
+    const [loadingFollowing, setLoadingFollowing] = useState(false);
     const scrollContainerRef = useRef(null);
 
     useEffect(() => {
@@ -169,14 +172,40 @@ export default function Community({ user }) {
         return () => window.removeEventListener('hyperx-refresh-community', handleRefresh);
     }, [loadPosts]);
 
+    const loadFollowing = useCallback(async () => {
+        if (!currentUser) return;
+        setLoadingFollowing(true);
+        try {
+            const { data: followIds } = await supabase
+                .from('follows')
+                .select('following_id')
+                .eq('follower_id', currentUser.id);
+
+            if (followIds && followIds.length > 0) {
+                const ids = followIds.map(f => f.following_id);
+                const { data: profiles } = await supabase
+                    .from('profiles')
+                    .select('id, full_name, avatar_url')
+                    .in('id', ids);
+                setFollowing(profiles || []);
+            } else {
+                setFollowing([]);
+            }
+        } catch (error) {
+            console.error("Error loading following:", error);
+        } finally {
+            setLoadingFollowing(false);
+        }
+    }, [currentUser]);
+
     useEffect(() => {
         const fetch = async () => {
             setLoading(true); 
-            await loadPosts(); 
+            await Promise.all([loadPosts(), loadFollowing()]);
             setLoading(false);
         };
         fetch();
-    }, [loadPosts]);
+    }, [loadPosts, loadFollowing]);
 
     const submitPost = async () => {
         if (!currentUser || !currentUser.id) return alert("Lỗi: Không tìm thấy thông tin người dùng!");
@@ -351,6 +380,47 @@ export default function Community({ user }) {
                                 <div className="text-xl font-bold text-cyan-400">{onlineCount}</div>
                                 <div className="text-xs text-gray-500 uppercase font-bold">Online</div>
                             </div>
+                        </div>
+                    </div>
+
+                    {/* FOLLOWING LIST */}
+                    <div className="p-5 rounded-2xl bg-[#0B0D14] border border-white/10 shadow-lg flex-1 flex flex-col overflow-hidden min-h-0">
+                        <h2 className="text-white font-bold mb-4 flex items-center justify-between">
+                            <span className="flex items-center gap-2"><Sparkles size={18} className="text-yellow-400"/> Following</span>
+                            <span className="text-[10px] text-gray-500 font-bold bg-white/5 px-2 py-0.5 rounded-full">{following.length}</span>
+                        </h2>
+                        
+                        <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3 pr-1">
+                            {loadingFollowing ? (
+                                [...Array(3)].map((_, i) => (
+                                    <div key={i} className="flex items-center gap-3 animate-pulse">
+                                        <div className="w-9 h-9 rounded-xl bg-white/5"></div>
+                                        <div className="h-3 w-20 bg-white/5 rounded-md"></div>
+                                    </div>
+                                ))
+                            ) : following.length === 0 ? (
+                                <div className="text-center py-6 px-2">
+                                    <p className="text-[11px] text-gray-500 leading-relaxed">Follow creators to chat with them instantly.</p>
+                                </div>
+                            ) : (
+                                following.map(user => (
+                                    <button 
+                                        key={user.id} 
+                                        onClick={() => window.dispatchEvent(new CustomEvent('hyperx-open-chat', { detail: user }))}
+                                        className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-all group text-left"
+                                    >
+                                        <UserAvatar user={{ raw_user_meta_data: user }} size="xs" className="w-9 h-9 group-hover:scale-105 transition-transform" />
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-xs font-bold text-gray-300 group-hover:text-white truncate transition-colors uppercase tracking-tighter">
+                                                {user.full_name || "Unknown"}
+                                            </p>
+                                            <span className="text-[9px] text-gray-600 flex items-center gap-1 group-hover:text-cyan-500/50 transition-colors">
+                                                <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse"></span> Active
+                                            </span>
+                                        </div>
+                                    </button>
+                                ))
+                            )}
                         </div>
                     </div>
                 </div>

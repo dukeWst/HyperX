@@ -14,7 +14,7 @@ import ChatInput from './ChatInput';
 // --- CONFIG ---
 const getApiKey = () => import.meta.env.VITE_GEMINI_API_KEY || "";
 const apiKey = getApiKey();
-const modelName = "gemini-2.5-flash"; // Hoặc model mới nhất bạn có
+const modelName = "gemini-1.5-flash"; // Đã sửa từ gemini-2.5-flash (không hợp lệ) sang gemini-1.5-flash
 const apiUrlBase = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
 const apiUrl = `${apiUrlBase}${apiKey ? `?key=${apiKey}` : ""}`;
 const MAX_HISTORY_TURNS = 10;

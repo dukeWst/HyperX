@@ -6,7 +6,8 @@ import PostItem from "../community/PostItem";
 import { 
     Calendar, Mail, Edit3, 
     Grid, Activity, UserX, Package, ChevronRight, ArrowLeft, UserPlus, UserCheck,
-    ShieldAlert, XCircle, Loader2
+    ShieldAlert, XCircle, Loader2, MessageSquare,
+    MessageCircle
 } from "lucide-react";
 
 const UserProfile = ({ user: propUser }) => {
@@ -293,20 +294,29 @@ const UserProfile = ({ user: propUser }) => {
                                             <Edit3 size={18} /> Edit Profile
                                         </button>
                                     ) : (
-                                        <button 
-                                            onClick={handleFollowToggle}
-                                            disabled={isUpdatingFollow}
-                                            className={`flex items-center gap-2 px-8 py-2.5 rounded-xl font-bold transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:scale-100 disabled:cursor-not-allowed
-                                            ${isFollowing 
-                                                ? 'bg-white/5 border border-white/10 text-gray-300 hover:text-red-400 hover:border-red-500/30' 
-                                                : 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white hover:brightness-110 shadow-cyan-500/20'}`}
-                                        >
-                                            {isUpdatingFollow ? (
-                                                <><Loader2 size={18} className="animate-spin" /> Waiting...</>
-                                            ) : (
-                                                isFollowing ? <><UserCheck size={18} /> Following</> : <><UserPlus size={18} /> Follow</>
-                                            )}
-                                        </button>
+                                        <div className="flex gap-3">
+                                            <button 
+                                                onClick={() => window.dispatchEvent(new CustomEvent('hyperx-open-chat', { detail: profile }))}
+                                                className="flex items-center gap-2 px-6 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-cyan-500/30 rounded-xl font-semibold text-gray-300 transition-all active:scale-95"
+                                            >
+                                                <MessageCircle size={18} className="text-cyan-400" />
+                                                <span className="hidden sm:inline">Message</span>
+                                            </button>
+                                            <button 
+                                                onClick={handleFollowToggle}
+                                                disabled={isUpdatingFollow}
+                                                className={`flex items-center gap-2 px-8 py-2.5 rounded-xl font-bold transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:scale-100 disabled:cursor-not-allowed
+                                                ${isFollowing 
+                                                    ? 'bg-white/5 border border-white/10 text-gray-300 hover:text-red-400 hover:border-red-500/30' 
+                                                    : 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white hover:brightness-110 shadow-cyan-500/20'}`}
+                                            >
+                                                {isUpdatingFollow ? (
+                                                    <><Loader2 size={18} className="animate-spin" /> Waiting...</>
+                                                ) : (
+                                                    isFollowing ? <><UserCheck size={18} /> Following</> : <><UserPlus size={18} /> Follow</>
+                                                )}
+                                            </button>
+                                        </div>
                                     )}
                                 </div>
                             </div>

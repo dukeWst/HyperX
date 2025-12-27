@@ -7,6 +7,7 @@ import Header from './layouts/Header';
 import Footer from './layouts/Footer';
 import LazyLoading from './page/enhancements/LazyLoading';
 import ScrollToTop from './page/enhancements/ScrollTop';
+import ChatBox from './components/ChatBox';
 
 // Routes Config & Protection
 import routes from './routes/config'; // File config đã sửa có HomeWrapper
@@ -83,6 +84,7 @@ function AppRoutes({ user }) {
       </Suspense>
 
       {showFooter && <Footer />}
+      <ChatBox currentUser={user} />
     </>
   );
 }
