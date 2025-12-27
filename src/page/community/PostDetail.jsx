@@ -87,12 +87,6 @@ const PostDetail = () => {
              <div className="fixed bottom-0 right-0 -z-10 w-[40rem] h-[40rem] bg-blue-900/10 rounded-full blur-[120px] pointer-events-none"></div>
 
             <div className="max-w-3xl mx-auto relative z-10">
-                <button 
-                    onClick={() => navigate(-1)} 
-                    className="flex items-center gap-2 text-gray-400 hover:text-white mb-6 transition-colors group px-4 py-2 rounded-lg hover:bg-white/5 w-fit"
-                >
-                    <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" /> Back
-                </button>
 
                 <PostItem 
                     post={post} 

@@ -7,7 +7,7 @@ import {
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { HeartIcon, ChatBubbleLeftIcon, UserPlusIcon } from '@heroicons/react/24/solid';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../routes/supabaseClient'; // Đảm bảo đường dẫn đúng
 import LazyLoading from '../page/enhancements/LazyLoading'; // Đảm bảo đường dẫn đúng
 import UserAvatar from '../components/UserAvatar'; // Đảm bảo đường dẫn đúng
@@ -23,6 +23,7 @@ const navigation = [
 const Header = ({ user }) => {
     const [loggingOut, setLoggingOut] = useState(false);
     const navigate = useNavigate();
+    const location = useLocation();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
     
@@ -164,7 +165,7 @@ const Header = ({ user }) => {
         setNotiOpen(false);
 
         if (noti.type === 'follow') navigate(`/profile/${noti.actor_id}`);
-        else if (['like_post', 'comment', 'mention'].includes(noti.type)) navigate(`/post/${noti.resource_id}?commentId=${noti.comment_id || ''}`);
+        else if (['like_post', 'like_comment', 'comment', 'mention'].includes(noti.type)) navigate(`/post/${noti.resource_id}?commentId=${noti.comment_id || ''}`);
     };
 
     const handleMarkAllRead = async () => {
@@ -212,6 +213,7 @@ const Header = ({ user }) => {
     const getNotiIcon = (type) => {
         switch (type) {
             case 'like_post': return <HeartIcon className="w-3.5 h-3.5 text-red-500" />;
+            case 'like_comment': return <HeartIcon className="w-3.5 h-3.5 text-red-500" />;
             case 'comment': return <ChatBubbleLeftIcon className="w-3.5 h-3.5 text-blue-500" />;
             case 'follow': return <UserPlusIcon className="w-3.5 h-3.5 text-green-500" />;
             case 'mention': return <AtSymbolIcon className="w-3.5 h-3.5 text-orange-500" />; 
@@ -223,6 +225,7 @@ const Header = ({ user }) => {
         const name = noti.actor?.full_name || 'Someone';
         switch (noti.type) {
             case 'like_post': return <span><span className="font-bold text-indigo-200">{name}</span> liked your post.</span>;
+            case 'like_comment': return <span><span className="font-bold text-indigo-200">{name}</span> liked your comment: "{noti.content}"</span>;
             case 'comment': return <span><span className="font-bold text-indigo-200">{name}</span> commented: "{noti.content}"</span>;
             case 'follow': return <span><span className="font-bold text-indigo-200">{name}</span> started following you.</span>;
             case 'mention': return <span><span className="font-bold text-indigo-200">{name}</span> mentioned you: "{noti.content}"</span>;
@@ -250,7 +253,15 @@ const Header = ({ user }) => {
                 
                 {/* Logo Area */}
                 <div className="flex lg:flex-1">
-                    <Link to={user ? "/dashboard" : "/"} className="-m-1.5 p-1.5 group flex items-center gap-2">
+                    <Link 
+                        to={user ? "/community" : "/"} 
+                        onClick={() => {
+                            if (location.pathname === '/community') {
+                                window.dispatchEvent(new CustomEvent('hyperx-refresh-community'));
+                            }
+                        }}
+                        className="-m-1.5 p-1.5 group flex items-center gap-2"
+                    >
                         {/* Logo Style giống Dashboard */}
                         <span className="text-2xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-200 to-gray-500 group-hover:to-white transition-all duration-300">
                             HYPER<span className="text-cyan-400">X</span>
@@ -276,6 +287,8 @@ const Header = ({ user }) => {
                                     if (!user && item.private) {
                                         e.preventDefault();
                                         setIsAuthModalOpen(true);
+                                    } else if (location.pathname === '/community' && item.href === 'community') {
+                                        window.dispatchEvent(new CustomEvent('hyperx-refresh-community'));
                                     }
                                 }}
                                 className="relative px-6 py-5 flex items-center transition-all duration-300"
@@ -486,9 +499,6 @@ const Header = ({ user }) => {
 >
     <UserIcon className="w-4.5 h-4.5 text-gray-500" /> Profile
 </Link>
-                                            <Link to="/dashboard" className="flex items-center px-3 py-2 text-sm text-gray-300 hover:bg-white/10 hover:text-white rounded-lg gap-3 transition-colors" onClick={() => setDropdownOpen(false)}>
-                                                <ArrowRightOnRectangleIcon className="w-4.5 h-4.5 text-gray-500 -rotate-90" /> Dashboard
-                                            </Link>
                                             <Link to="/support" className="flex items-center px-3 py-2 text-sm text-gray-300 hover:bg-white/10 hover:text-white rounded-lg gap-3 transition-colors" onClick={() => setDropdownOpen(false)}>
                                                 <QuestionMarkCircleIcon className="w-4.5 h-4.5 text-gray-500" /> Help & Support
                                             </Link>
@@ -578,9 +588,6 @@ const Header = ({ user }) => {
         <div className="text-xs text-gray-500">{safeUserEmail}</div>
     </div>
 </Link>
-                                        <Link to="/dashboard" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 -mx-3 px-3 py-2 rounded-lg hover:bg-white/10 text-gray-300">
-                                             Dashboard
-                                        </Link>
                                         <button onClick={() => { handleLogout(); setMobileMenuOpen(false); }} className="w-full text-center px-4 py-2.5 text-sm font-semibold text-white bg-red-600/20 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-600/30 flex items-center justify-center gap-2"><ArrowRightOnRectangleIcon className="w-5 h-5" /> Logout</button>
                                     </div>
                                 ) : (

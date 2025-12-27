@@ -34,7 +34,6 @@ function AppRoutes({ user }) {
     '/profile',
     '/profile/:id',
     '/setting',
-    '/dashboard'      
   ];
   
   const showFooter = !hideFooterOn.some(path => matchPath({ path, end: false }, location.pathname));

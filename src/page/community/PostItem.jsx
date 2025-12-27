@@ -83,6 +83,19 @@ const CommentItem = memo(({ comment, allComments, currentUser, onDelete, onReply
         } else {
             setLikes(p => p + 1); setIsLiked(true);
             await supabase.from("comment_likes").insert({ comment_id: comment.id, user_id: currentUser.id });
+            
+            // --- NEW: SEND NOTIFICATION ---
+            if (currentUser.id !== comment.user_id) {
+                await supabase.from('notifications').insert({
+                    user_id: comment.user_id,
+                    actor_id: currentUser.id,
+                    type: 'like_comment',
+                    content: comment.content.substring(0, 30) + (comment.content.length > 30 ? '...' : ''),
+                    resource_id: comment.post_id,
+                    comment_id: comment.id,
+                    is_read: false
+                });
+            }
         }
     };
 
@@ -108,6 +121,19 @@ const CommentItem = memo(({ comment, allComments, currentUser, onDelete, onReply
                 profiles: data.profiles || { full_name: currentUser.user_metadata?.full_name, avatar_url: currentUser.user_metadata?.avatar_url || currentUser.user_metadata?.picture }
             };
             onReplySuccess(newReply); setReplyContent(""); setShowReplyInput(false);
+            
+            // --- NEW: SEND NOTIFICATION ---
+            if (currentUser.id !== comment.user_id) {
+                await supabase.from('notifications').insert({
+                    user_id: comment.user_id,
+                    actor_id: currentUser.id,
+                    type: 'comment',
+                    content: replyContent.substring(0, 50) + (replyContent.length > 50 ? '...' : ''),
+                    resource_id: comment.post_id,
+                    comment_id: data.id,
+                    is_read: false
+                });
+            }
         } else { alert("Error replying: " + error?.message); }
         setIsSendingReply(false);
     };
@@ -486,13 +512,24 @@ const PostItem = ({ post: initialPost, currentUser, onPostDeleted, onPostUpdated
     const handleLike = useCallback(async () => {
         if (!currentUser || !postData?.id) return alert("Please log in.");
         if (isLiked) {
-            setLikes(p => p - 1); setIsLiked(false);
+            setLikes(p => Math.max(0, p - 1)); setIsLiked(false);
             await supabase.from("post_likes").delete().eq("post_id", postData.id).eq("user_id", currentUser.id); 
         } else {
             setLikes(p => p + 1); setIsLiked(true);
             await supabase.from("post_likes").insert({ post_id: postData.id, user_id: currentUser.id }); 
+            
+            // --- NEW: SEND NOTIFICATION ---
+            if (currentUser.id !== postData.user_id) {
+                await supabase.from('notifications').insert({
+                    user_id: postData.user_id,
+                    actor_id: currentUser.id,
+                    type: 'like_post',
+                    resource_id: postData.id,
+                    is_read: false
+                });
+            }
         }
-    }, [isLiked, currentUser, postData?.id]); 
+    }, [isLiked, currentUser, postData?.id, postData?.user_id]); 
 
     const toggleComments = useCallback(async () => {
         if (!showComments && comments.length === 0) await fetchCommentsData();
@@ -518,9 +555,22 @@ const PostItem = ({ post: initialPost, currentUser, onPostDeleted, onPostUpdated
                 full_name: userMeta.full_name
             };
             setComments(prev => [...prev, optimistic]); setNewComment(""); setCommentCount(p => p + 1);
+            
+            // --- NEW: SEND NOTIFICATION ---
+            if (currentUser.id !== postData.user_id) {
+                await supabase.from('notifications').insert({
+                    user_id: postData.user_id,
+                    actor_id: currentUser.id,
+                    type: 'comment',
+                    content: newComment.substring(0, 50) + (newComment.length > 50 ? '...' : ''),
+                    resource_id: postData.id,
+                    comment_id: data.id,
+                    is_read: false
+                });
+            }
         } else { alert("Error sending comment: " + error?.message); }
         setIsSendingComment(false); 
-    }, [currentUser, newComment, postData?.id]); 
+    }, [currentUser, newComment, postData?.id, postData?.user_id]); 
 
     const handleReplySuccess = useCallback((newReply) => { setComments(prev => [...prev, newReply]); setCommentCount(p => p + 1); }, []);
     const requestDeleteComment = useCallback((id) => { setCommentToDelete(id); setDeleteCommentModalOpen(true); }, []);
@@ -572,7 +622,7 @@ const PostItem = ({ post: initialPost, currentUser, onPostDeleted, onPostUpdated
     };
 
     const handleCopyLink = () => {
-        const postUrl = `${window.location.origin}/community/post/${postData.id}`;
+        const postUrl = `${window.location.origin}/post/${postData.id}`;
         navigator.clipboard.writeText(postUrl);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
@@ -622,6 +672,18 @@ const PostItem = ({ post: initialPost, currentUser, onPostDeleted, onPostUpdated
             {/* Footer Actions */}
             <div className="flex items-center justify-between mt-6 pl-[4rem] md:pl-[5.5rem] relative z-10">
                 <div className="flex items-center gap-3 md:gap-6">
+                    <div className="flex items-center gap-2">
+                        <button onClick={handleLike} className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl transition-all font-bold text-sm border ${isLiked ? "text-red-500 bg-red-500/10 border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.1)]" : "text-gray-400 border-white/5 hover:bg-white/5 hover:text-white hover:border-white/10"}`}>
+                            <Heart size={20} fill={isLiked ? "currentColor" : "none"} />
+                            <span className="tabular-nums">{likes}</span>
+                        </button>
+                        
+                        <button onClick={toggleComments} className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl transition-all font-bold text-sm border ${showComments ? "text-cyan-400 bg-cyan-500/10 border-cyan-500/20 shadow-[0_0_15px_rgba(6,182,212,0.1)]" : "text-gray-400 border-white/5 hover:bg-white/5 hover:text-white hover:border-white/10"}`}>
+                            <MessageCircle size={20} />
+                            <span className="tabular-nums">{commentCount}</span>
+                        </button>
+                    </div>
+
                     {/* Share Dropdown */}
                     <div className="relative">
                         <button 
@@ -650,7 +712,7 @@ const PostItem = ({ post: initialPost, currentUser, onPostDeleted, onPostUpdated
                                         </button>
                                         
                                         <button 
-                                            onClick={(e) => { e.stopPropagation(); window.open(`${window.location.origin}/community/post/${postData.id}`, '_blank'); setShowShareMenu(false); }}
+                                            onClick={(e) => { e.stopPropagation(); window.open(`${window.location.origin}/post/${postData.id}`, '_blank'); setShowShareMenu(false); }}
                                             className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-xl transition-all group"
                                         >
                                             <div className="p-2 bg-white/5 rounded-lg group-hover:bg-blue-500/10 group-hover:text-blue-400 transition-colors">
@@ -665,18 +727,6 @@ const PostItem = ({ post: initialPost, currentUser, onPostDeleted, onPostUpdated
                                 </div>
                             </>
                         )}
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                        <button onClick={handleLike} className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl transition-all font-bold text-sm border ${isLiked ? "text-red-500 bg-red-500/10 border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.1)]" : "text-gray-400 border-white/5 hover:bg-white/5 hover:text-white hover:border-white/10"}`}>
-                            <Heart size={20} fill={isLiked ? "currentColor" : "none"} />
-                            <span className="tabular-nums">{likes}</span>
-                        </button>
-                        
-                        <button onClick={toggleComments} className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl transition-all font-bold text-sm border ${showComments ? "text-cyan-400 bg-cyan-500/10 border-cyan-500/20 shadow-[0_0_15px_rgba(6,182,212,0.1)]" : "text-gray-400 border-white/5 hover:bg-white/5 hover:text-white hover:border-white/10"}`}>
-                            <MessageCircle size={20} />
-                            <span className="tabular-nums">{commentCount}</span>
-                        </button>
                     </div>
                 </div>
             </div>

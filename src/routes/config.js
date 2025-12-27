@@ -25,7 +25,6 @@ const MINIMUM_LOAD_DELAY = 500;
 // --- CẬP NHẬT: ƯU TIÊN IMPORT TRỰC TIẾP CHO CÁC TRANG CHÍNH ĐỂ CÓ CẢM GIÁC INSTANT ---
 import Home from '../page/Home/Home';
 import ChatbotAIPage from '../page/chatbotAI/ChatbotAI';
-import Dashboard from '../page/dashboard/DashboardPage';
 
 const routes = [
     {
@@ -39,14 +38,6 @@ const routes = [
         element: Home,
         exact: true,
         name: "Trang Chủ",
-    },
-    // -----------------------------------------------------------
-    // [MỚI] Route cho Dashboard
-    {
-        path: "/dashboard",
-        element: Dashboard,
-        private: true, // Bắt buộc đăng nhập mới vào được
-        name: "Tổng quan",
     },
     // -----------------------------------------------------------
     {

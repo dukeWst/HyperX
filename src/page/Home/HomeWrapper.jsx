@@ -6,10 +6,10 @@ const HomeWrapper = ({ user }) => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        // Nếu đã có user -> Đá sang Dashboard ngay lập tức mà không cần fetch lại
+        // Nếu đã có user -> Đá sang Community ngay lập tức mà không cần fetch lại
         if (user) {
-            console.log("User detected from prop, redirecting to Dashboard...");
-            navigate('/dashboard', { replace: true });
+            console.log("User detected from prop, redirecting to Community...");
+            navigate('/community', { replace: true });
         }
     }, [user, navigate]);
 

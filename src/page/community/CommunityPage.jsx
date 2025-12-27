@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { supabase } from "../../routes/supabaseClient";
-import { Search, Plus, MessageSquare, TrendingUp, Users } from "lucide-react";
+import { Search, Plus, MessageSquare, TrendingUp, Users, Bot, Sparkles, ArrowRight } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import PostFormModal from "./PostFormModal";
 import PostItem from "./PostItem";
@@ -16,6 +16,7 @@ export default function Community({ user }) {
     const [totalMembers, setTotalMembers] = useState(0);
     const [onlineCount, setOnlineCount] = useState(0);
     const [trendingTags, setTrendingTags] = useState([]);
+    const scrollContainerRef = useRef(null);
 
     useEffect(() => {
         const query = searchParams.get("search");
@@ -150,6 +151,25 @@ export default function Community({ user }) {
     }, []);
 
     useEffect(() => {
+        const handleRefresh = async () => {
+            // 1. Scroll instant lên trên
+            if (scrollContainerRef.current) {
+                scrollContainerRef.current.scrollTo({ top: 0, behavior: 'instant' });
+            }
+            // 2. Chỉnh state xám (skeletons)
+            setLoading(true);
+            setPosts([]);
+            setTrendingTags([]);
+            // 3. Re-fetch data
+            await loadPosts();
+            setLoading(false);
+        };
+
+        window.addEventListener('hyperx-refresh-community', handleRefresh);
+        return () => window.removeEventListener('hyperx-refresh-community', handleRefresh);
+    }, [loadPosts]);
+
+    useEffect(() => {
         const fetch = async () => {
             setLoading(true); 
             await loadPosts(); 
@@ -203,7 +223,9 @@ export default function Community({ user }) {
                     <div className="p-4 rounded-2xl bg-white/5 border border-white/5 shadow-lg">
                         <h2 className="text-white font-bold text-lg mb-4 flex items-center gap-2"><TrendingUp size={20} className="text-cyan-400"/> Trending</h2>
                         <ul className="space-y-3">
-                            {trendingTags.length > 0 ? (
+                            {loading && trendingTags.length === 0 ? (
+                                <TrendingSkeleton />
+                            ) : trendingTags.length > 0 ? (
                                 trendingTags.map(tag => (
                                     <li 
                                         key={tag} 
@@ -218,12 +240,31 @@ export default function Community({ user }) {
                             )}
                         </ul>
                     </div>
-                    <div className="p-4 rounded-2xl bg-gradient-to-br from-cyan-900/20 to-blue-900/20 border border-white/5 shadow-lg relative overflow-hidden group">
-                        <div className="absolute inset-0 bg-cyan-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                        <h3 className="text-white font-bold mb-2 relative z-10">Join the squad</h3>
-                        <p className="text-xs text-gray-400 mb-4 relative z-10">Connect with thousands of developers building the future.</p>
-                        <button className="w-full py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm text-white transition font-medium relative z-10 border border-white/10">Explore Groups</button>
-                    </div>
+                    <Link 
+                        to="/chatbot-ai"
+                        className="p-4 rounded-2xl bg-gradient-to-br from-indigo-600/20 via-cyan-600/10 to-transparent border border-white/5 shadow-lg relative overflow-hidden group transition-all hover:border-cyan-500/30 hover:shadow-[0_0_20px_-5px_rgba(6,182,212,0.2)]"
+                    >
+                        {/* Decorative elements */}
+                        <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                            <Bot size={48} />
+                        </div>
+                        <div className="absolute -bottom-8 -left-8 w-24 h-24 bg-cyan-500/10 rounded-full blur-2xl group-hover:bg-cyan-500/20 transition-all"></div>
+
+                        <div className="relative z-10">
+                            <div className="flex items-center gap-2 mb-2">
+                                <div className="p-1.5 bg-cyan-500/20 rounded-lg text-cyan-400">
+                                    <Sparkles size={16} />
+                                </div>
+                                <h3 className="text-white font-bold text-sm">HyperX AI Assistant</h3>
+                            </div>
+                            <p className="text-[11px] text-gray-400 mb-4 leading-relaxed line-clamp-2">
+                                Get instant help and tech insights with our advanced AI companion.
+                            </p>
+                            <div className="flex items-center gap-2 text-xs text-cyan-400 font-bold group-hover:gap-3 transition-all">
+                                Ask AI Now <ArrowRight size={14} />
+                            </div>
+                        </div>
+                    </Link>
                 </div>
 
                 {/* MIDDLE FEED */}
@@ -271,10 +312,13 @@ export default function Community({ user }) {
                     </div>
 
                     {/* POST LIST */}
-                    <div className="flex-1 overflow-y-auto custom-scrollbar scroll-smooth px-4 md:px-6 pb-20">
+                    <div 
+                        ref={scrollContainerRef}
+                        className="flex-1 overflow-y-auto custom-scrollbar scroll-smooth px-4 md:px-6 pb-20"
+                    >
                         {loading && posts.length === 0 ? (
-                            <div className="flex justify-center py-20">
-                                <div className="w-12 h-12 border-4 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin"></div>
+                            <div className="space-y-6 pt-2">
+                                {[...Array(3)].map((_, i) => <PostSkeleton key={i} />)}
                             </div>
                         ) : filteredPosts.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-20 border border-dashed border-white/10 rounded-3xl bg-white/[0.02] text-center">
@@ -312,7 +356,50 @@ export default function Community({ user }) {
                 </div>
             </div>
 
-            <PostFormModal show={showModal} onClose={() => setShowModal(false)} onSubmit={submitPost} form={form} setForm={setForm} loading={loading} currentUser={currentUser} />
+            <PostFormModal
+                isOpen={showModal}
+                onClose={() => setShowModal(false)}
+                form={form}
+                setForm={setForm}
+                onSubmit={submitPost}
+                loading={loading}
+            />
         </div>
     );
 }
+
+// --- SKELETON COMPONENTS ---
+const TrendingSkeleton = () => (
+    <div className="space-y-3 px-2">
+        {[...Array(5)].map((_, i) => (
+            <div key={i} className="h-4 w-full skeleton-cyan rounded-md opacity-50"></div>
+        ))}
+    </div>
+);
+
+const PostSkeleton = () => (
+    <div className="bg-[#0B0D14] border border-white/5 rounded-3xl p-6 md:p-8 shadow-2xl relative overflow-hidden">
+        <div className="flex items-start justify-between mb-6">
+            <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl skeleton-cyan"></div>
+                <div className="space-y-2">
+                    <div className="h-4 w-32 skeleton-cyan"></div>
+                    <div className="h-3 w-20 skeleton-cyan opacity-50"></div>
+                </div>
+            </div>
+            <div className="h-8 w-8 rounded-xl skeleton-cyan opacity-30"></div>
+        </div>
+        
+        <div className="space-y-3 mb-6 ml-16">
+            <div className="h-6 w-3/4 skeleton-cyan"></div>
+            <div className="h-4 w-full skeleton-cyan opacity-40"></div>
+            <div className="h-4 w-5/6 skeleton-cyan opacity-40"></div>
+        </div>
+
+        <div className="flex items-center gap-4 ml-16 pt-6 border-t border-white/5">
+            <div className="h-10 w-24 rounded-2xl skeleton-cyan opacity-30"></div>
+            <div className="h-10 w-24 rounded-2xl skeleton-cyan opacity-30"></div>
+            <div className="h-10 w-12 rounded-2xl skeleton-cyan opacity-30"></div>
+        </div>
+    </div>
+);
