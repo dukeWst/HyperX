@@ -11,18 +11,24 @@ import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import UserAvatar from '../../components/UserAvatar';
 import ChatInput from './ChatInput';
 
-// --- CONFIG ---
+// --- CONFIG (GEMINI FREE) ---
 const getApiKey = () => import.meta.env.VITE_GEMINI_API_KEY || "";
 const apiKey = getApiKey();
-const modelName = "gemini-1.5-flash"; // Đã sửa từ gemini-2.5-flash (không hợp lệ) sang gemini-1.5-flash
-const apiUrlBase = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
-const apiUrl = `${apiUrlBase}${apiKey ? `?key=${apiKey}` : ""}`;
+const modelName = "gemini-flash-latest";
+const apiUrlBase = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`; 
+const apiUrl = `${apiUrlBase}?key=${apiKey}`;
+
 const MAX_HISTORY_TURNS = 10;
-const initialMessages = [];
 const systemInstruction = "You are HyperX AI, a helpful, witty, and knowledgeable assistant for developers. You answer in Vietnamese unless asked otherwise. Format code blocks beautifully.";
 
 // --- HELPERS ---
-const convertToBase64 = (file) => new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(file); });
+const convertToBase64 = (file) => new Promise((resolve, reject) => { 
+    const reader = new FileReader(); 
+    reader.onload = () => resolve(reader.result); 
+    reader.onerror = reject; 
+    reader.readAsDataURL(file); 
+});
+
 function splitMarkdownStable(text = "") {
   const count = (re) => (text.match(re) || []).length;
   const ticks = count(/`/g); const bold = count(/\*\*/g); const italics = count(/(^|[^*])\*([^*]|$)/g);
@@ -42,7 +48,6 @@ const Message = ({ msg, isTyping, currentUser }) => {
   const [isCopied, setIsCopied] = useState(false);
   const isUser = msg.role === "user";
   
-  // UPDATED: Bubble Styles for Cyan Theme
   const bubbleClasses = isUser 
     ? "bg-gradient-to-br from-cyan-600 to-blue-600 text-white shadow-lg shadow-cyan-500/20 border border-cyan-500/20" 
     : "bg-[#0B0D14]/80 backdrop-blur-md border border-white/10 text-gray-200 shadow-xl";
@@ -54,34 +59,26 @@ const Message = ({ msg, isTyping, currentUser }) => {
 
   const isAssistantThinking = !isUser && msg.isThinking && isTyping;
   const isAssistantTyping = !isUser && msg.isPlaceholder && isTyping && msg.content && (msg.content + "").length > 0;
-
   const canShowCopyButton = !isUser && !msg.isPlaceholder && !msg.isThinking && msg.content && typeof msg.content === 'string' && msg.content.trim() !== "";
 
   return (
     <div className={`flex flex-col w-full mb-8 ${isUser ? "items-end" : "items-start"} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
       <div className={`flex items-start gap-4 max-w-[90%] md:max-w-[85%] lg:max-w-[75%] ${isUser ? "flex-row-reverse" : "flex-row"}`}>
-        
-        {/* Avatar */}
         <div className="flex-shrink-0 mt-1">
           {isUser ? (
             <UserAvatar user={currentUser} size="sm" />
           ) : (
-            // UPDATED: Bot Icon Cyan
             <div className="w-8 h-8 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.2)]">
               <Bot size={18} />
             </div>
           )}
         </div>
 
-        {/* Content */}
         <div className={`flex flex-col gap-2 min-w-0 ${isUser ? "items-end" : "items-start"}`}>
-            
-            {/* User Info / Bot Name */}
             <span className="text-[10px] uppercase font-bold tracking-wider text-gray-500 px-1">
                 {isUser ? "You" : "HyperX AI"}
             </span>
 
-            {/* Image Preview */}
             {isUser && msg.imageUrl && (
                 <div className="mb-2 overflow-hidden rounded-2xl border border-white/10 shadow-lg">
                     <img src={msg.imageUrl} alt="uploaded" className="max-w-[200px] max-h-[200px] object-cover" />
@@ -96,7 +93,7 @@ const Message = ({ msg, isTyping, currentUser }) => {
                 {isAssistantThinking ? (
                     <div className="flex items-center gap-3 text-cyan-400">
                         <Loader2 size={18} className="animate-spin" />
-                        <span className="text-xs font-bold uppercase tracking-widest animate-pulse">Processing...</span>
+                        <span className="text-xs font-bold uppercase tracking-widest animate-pulse">Thinking...</span>
                     </div>
                 ) : (
                     <div className="markdown-content">
@@ -118,11 +115,6 @@ const Message = ({ msg, isTyping, currentUser }) => {
                                                 <div className="my-4 rounded-xl overflow-hidden border border-white/10 shadow-lg bg-[#0d1117]">
                                                     <div className="bg-[#161b22] px-4 py-2 flex justify-between items-center border-b border-white/5">
                                                         <span className="text-xs text-cyan-400 font-mono font-bold lowercase">{match?.[1] || 'code'}</span>
-                                                        <div className="flex gap-1.5">
-                                                            <div className="w-2.5 h-2.5 rounded-full bg-red-500/20"></div>
-                                                            <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/20"></div>
-                                                            <div className="w-2.5 h-2.5 rounded-full bg-green-500/20"></div>
-                                                        </div>
                                                     </div>
                                                     <SyntaxHighlighter language={match?.[1]} style={oneDark} PreTag="div" customStyle={{margin:0, borderRadius:0, background:'transparent', fontSize: '0.85rem'}} {...props}>
                                                         {String(children).replace(/\n$/, "")}
@@ -154,7 +146,6 @@ const Message = ({ msg, isTyping, currentUser }) => {
                 </>
             )}
             
-            {/* Copy Button */}
             {canShowCopyButton && (
                 <div className="absolute -bottom-6 left-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                     <button onClick={handleCopy} className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-cyan-400 transition-colors px-2 py-1 rounded-md hover:bg-white/5">
@@ -174,36 +165,26 @@ const Message = ({ msg, isTyping, currentUser }) => {
 const PageSkeleton = () => (
   <div className="flex flex-col items-center justify-center flex-1 w-full max-w-4xl mx-auto px-4 relative z-10">
     <div className="text-center mb-12 space-y-8 flex flex-col items-center">
-      {/* Premium Circular Loader */}
       <div className="mb-8 relative flex items-center justify-center">
         <div className="premium-loader" />
         <Bot size={32} className="absolute text-cyan-400 opacity-20 animate-pulse" />
       </div>
-      
-      {/* Skeleton Title */}
       <div className="h-10 md:h-14 w-64 md:w-96 skeleton-cyan rounded-2xl" />
-      
-      {/* Skeleton Subtitle */}
       <div className="space-y-3 mt-4 flex flex-col items-center w-full">
         <div className="h-4 w-72 md:w-[30rem] skeleton-cyan rounded-full opacity-60" />
         <div className="h-4 w-48 md:w-80 skeleton-cyan rounded-full opacity-40" />
       </div>
-
       <div className="mt-8">
-        <span className="text-xs font-bold uppercase tracking-[0.3em] text-cyan-500/50 animate-pulse">
-            Loading...
-        </span>
+        <span className="text-xs font-bold uppercase tracking-[0.3em] text-cyan-500/50 animate-pulse">Loading...</span>
       </div>
     </div>
-    
-    {/* Skeleton Input Area */}
     <div className="w-full max-w-3xl h-16 skeleton-cyan rounded-2xl mt-4" style={{ opacity: 0.15 }} />
   </div>
 );
 
 // --- MAIN PAGE ---
 export default function ChatbotAIPage({ user }) {
-  const [messages, setMessages] = useState(initialMessages);
+  const [messages, setMessages] = useState([]);
   const [isChatStarted, setIsChatStarted] = useState(false);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
@@ -223,70 +204,146 @@ export default function ChatbotAIPage({ user }) {
 
   // --- HELPERS / HANDLERS ---
   const showAlert = (text, type = "info", ms = 4000) => { setAlert({ text, type }); setTimeout(() => setAlert(null), ms); };
+  
   const handleCancelFile = useCallback(() => { setSelectedFile(null); setPreviewUrl(null); }, []);
+  
   const handleFileSelect = useCallback(async (file) => {
-    if (!file) return; if (file.size > 5 * 1024 * 1024) { showAlert("File size exceeds 5MB.", "error"); return; }
+    if (!file) return; 
+    if (file.size > 5 * 1024 * 1024) { showAlert("File size exceeds 5MB.", "error"); return; }
     setSelectedFile(file);
-    try { if (file.type.startsWith("image/")) { setPreviewUrl(URL.createObjectURL(file)); } else { setPreviewUrl(null); } } catch { setPreviewUrl(null); }
+    try { 
+        if (file.type.startsWith("image/")) { setPreviewUrl(URL.createObjectURL(file)); } 
+        else { setPreviewUrl(null); } 
+    } catch { setPreviewUrl(null); }
   }, []);
 
   const handleStop = useCallback(() => {
-    if (abortCtrl) try { abortCtrl.abort(); } catch { /* ignore abort error */ }
+    if (abortCtrl) try { abortCtrl.abort(); } catch { }
     if (simIntervalRef.current) { clearInterval(simIntervalRef.current); simIntervalRef.current = null; }
     setIsTyping(false); setAbortCtrl(null);
-    setMessages((prev) => prev.map((m) => (m.isPlaceholder ? { ...m, isPlaceholder: false, isThinking: false } : m)));
+    setMessages((prev) => prev.map((m) => (m.isPlaceholder ? { ...m, isPlaceholder: false, isThinking: false, content: m.content || "Stopped." } : m)));
     showAlert("Stopped.", "info", 2000);
   }, [abortCtrl]);
 
+  // --- GEMINI API FUNCTION (QUAY VỀ GOOGLE) ---
   const callGeminiApi = useCallback(async (userPrompt, chatHistory = [], imageFile = null, onChunk = null) => {
     setAlert(null);
-    if (!apiKey) { setAlert({ text: "Missing API Key", type: "error" }); return { responseText: "API Key Error", sources: [] }; }
+    if (!apiKey) { 
+        setAlert({ text: "Missing Gemini API Key", type: "error" }); 
+        return { responseText: "API Key Error" }; 
+    }
+
     const userContentParts = [{ text: userPrompt }];
     if (imageFile) {
-      try { const base64 = await convertToBase64(imageFile); const pure = base64.split(",")[1]; userContentParts.push({ inline_data: { mime_type: imageFile.type, data: pure } }); } catch { /* ignore base64 error */ }
+      try { 
+          const base64Full = await convertToBase64(imageFile);
+          const pure = base64Full.split(",")[1];
+          userContentParts.push({ inline_data: { mime_type: imageFile.type, data: pure } }); 
+      } catch { }
     }
+
     const payload = {
       contents: [...chatHistory, { role: "user", parts: userContentParts }],
-      systemInstruction: { role: "system", parts: [{ text: systemInstruction }] },
+      systemInstruction: { parts: [{ text: systemInstruction }] }, 
     };
-    let accumulated = ""; let sources = []; const controller = new AbortController(); setAbortCtrl(controller);
+
+    let accumulated = "";
+    const controller = new AbortController();
+    setAbortCtrl(controller);
+
     try {
-      const response = await fetch(apiUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload), signal: controller.signal });
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        signal: controller.signal
+      });
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error?.message || "Unknown error");
+      
+      if (!response.ok) {
+        throw new Error(result.error?.message || `HTTP Error ${response.status}`);
+      }
+
       const candidate = result.candidates?.[0] || null;
       if (candidate) { accumulated = candidate.content?.parts?.[0]?.text || ""; }
+
       if (onChunk && accumulated) {
-        const revealSpeed = 10; let i = 0; // Faster reveal
+        const revealSpeed = 10; let i = 0; 
         await new Promise((resolve) => {
-          simIntervalRef.current = setInterval(() => { i+=2; onChunk(accumulated.slice(0, i)); if (i >= accumulated.length) { clearInterval(simIntervalRef.current); simIntervalRef.current = null; resolve(); } }, revealSpeed);
+          simIntervalRef.current = setInterval(() => { 
+              i+=2; onChunk(accumulated.slice(0, i)); 
+              if (i >= accumulated.length) { clearInterval(simIntervalRef.current); simIntervalRef.current = null; resolve(); } 
+          }, revealSpeed);
         });
       }
-    } catch (err) { if (err.name === "AbortError") return { responseText: accumulated, sources }; setAlert({ text: err.message, type: "error" }); return { responseText: accumulated || "Error processing request.", sources }; } finally { setAbortCtrl(null); if (simIntervalRef.current) { clearInterval(simIntervalRef.current); simIntervalRef.current = null; } }
-    return { responseText: accumulated, sources };
-  }, [setAlert, setAbortCtrl]);
+    } catch (err) {
+      if (err.name === "AbortError") return { responseText: accumulated };
+      throw err;
+    } finally { setAbortCtrl(null); if (simIntervalRef.current) { clearInterval(simIntervalRef.current); simIntervalRef.current = null; } }
+    return { responseText: accumulated };
+  }, [apiKey, setAlert, setAbortCtrl]);
 
   const handleSendMessage = useCallback(async (e) => {
     if (e && e.preventDefault) e.preventDefault();
     const prompt = (input || "").trim();
-    if (!prompt && !selectedFile) return; if (isTyping) return;
-    setIsMenuOpen(false); const now = Date.now();
+    if (!prompt && !selectedFile) return; 
+    if (isTyping) return;
+    
+    setIsMenuOpen(false); 
+    const now = Date.now();
     if (!isChatStarted) setIsChatStarted(true);
-    const fileToSend = selectedFile; const urlToShow = previewUrl;
-    setInput(""); setSelectedFile(null); setPreviewUrl(null); setIsTyping(true); setAlert(null);
+    
+    const fileToSend = selectedFile; 
+    const urlToShow = previewUrl;
+    setInput(""); 
+    setSelectedFile(null); 
+    setPreviewUrl(null); 
+    setIsTyping(true); 
+    setAlert(null);
+
     const userMsg = { id: now, role: "user", content: prompt || (fileToSend ? `[Analyze file: ${fileToSend.name}]` : ""), imageUrl: urlToShow || null };
     const botPlaceholderId = now + 1;
-    const botPlaceholder = { id: botPlaceholderId, role: "assistant", content: "", isPlaceholder: true, isThinking: true, sources: [] };
+    const botPlaceholder = { id: botPlaceholderId, role: "assistant", content: "", isPlaceholder: true, isThinking: true };
+    
     setMessages((prev) => [...prev, userMsg, botPlaceholder]);
-    const chatHistory = messages.filter(m => !m.isPlaceholder).slice(-MAX_HISTORY_TURNS * 2).map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content || "" }] }));
+    
+    const chatHistory = messages.filter(m => !m.isPlaceholder).slice(-MAX_HISTORY_TURNS * 2).map(m => ({ 
+        role: m.role === 'assistant' ? 'model' : 'user', 
+        parts: [{ text: m.content || "" }] 
+    }));
+
     const onChunk = (acc) => {
-      setMessages((prev) => prev.map((m) => { if (m.id === botPlaceholderId) { return { ...m, content: acc, isThinking: false }; } return m; }));
-      const el = msgContainerRef.current; if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+      setMessages((prev) => prev.map((m) => { 
+          if (m.id === botPlaceholderId) { return { ...m, content: acc, isThinking: false }; } 
+          return m; 
+      }));
+      const el = msgContainerRef.current; 
+      if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
     };
+
     try {
-      const { responseText, sources } = await callGeminiApi(prompt || "", chatHistory, fileToSend, onChunk);
-      setMessages((prev) => prev.map((m) => (m.id === botPlaceholderId ? { ...m, content: responseText, sources, isPlaceholder: false, isThinking: false } : m)));
-    } catch { setMessages((prev) => prev.map((m) => (m.id === botPlaceholderId ? { ...m, content: "Error receiving response.", isPlaceholder: false, isThinking: false } : m))); } finally { setIsTyping(false); }
+      // Quay lại gọi Gemini
+      const { responseText } = await callGeminiApi(prompt || "", chatHistory, fileToSend, onChunk);
+      
+      setMessages((prev) => prev.map((m) => (m.id === botPlaceholderId ? { 
+          ...m, 
+          content: responseText, 
+          isPlaceholder: false, 
+          isThinking: false 
+      } : m)));
+
+    } catch (error) {
+        console.error("LỖI GỌI API:", error);
+        setMessages((prev) => prev.map((m) => (m.id === botPlaceholderId ? { 
+            ...m, 
+            content: `**Error:** ${error.message || "Something went wrong."}`, 
+            isPlaceholder: false, 
+            isThinking: false 
+        } : m)));
+        showAlert(`Error: ${error.message}`, "error");
+    } finally { 
+        setIsTyping(false); 
+    }
   }, [input, selectedFile, isTyping, isChatStarted, previewUrl, messages, callGeminiApi, setIsMenuOpen]);
 
   // --- EFFECTS ---
@@ -318,7 +375,6 @@ export default function ChatbotAIPage({ user }) {
     if (isBottom) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [messages, isChatStarted]);
 
-  // Drag & Drop logic
   useEffect(() => {
     const dropArea = dropRef.current;
     if (!dropArea) return;
@@ -334,13 +390,11 @@ export default function ChatbotAIPage({ user }) {
     ["dragenter", "dragover"].forEach((evt) => dropArea.addEventListener(evt, highlight));
     ["dragleave", "drop"].forEach((evt) => dropArea.addEventListener(evt, unhighlight));
     dropArea.addEventListener("drop", handleDrop);
-    return () => { try { ["dragenter", "dragover", "dragleave", "drop"].forEach((evt) => dropArea.removeEventListener(evt, preventDefaults)); dropArea.removeEventListener("drop", handleDrop); } catch { /* ignore error on cleanup */ } };
+    return () => { try { ["dragenter", "dragover", "dragleave", "drop"].forEach((evt) => dropArea.removeEventListener(evt, preventDefaults)); dropArea.removeEventListener("drop", handleDrop); } catch { } };
   }, [handleFileSelect, isTypingRef]);
 
   return (
     <div className="bg-[#05050A] text-gray-300 font-sans h-screen w-screen overflow-hidden flex flex-col pt-16 relative isolate">
-      
-      {/* Background Effects */}
       <div className="fixed inset-0 z-0 pointer-events-none opacity-[0.03]" style={{backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`}}></div>
       <div className="fixed top-0 left-1/2 -translate-x-1/2 -z-10 w-[60rem] h-[60rem] bg-cyan-900/10 rounded-full blur-[120px] pointer-events-none"></div>
       <div className="fixed bottom-0 right-0 -z-10 w-[50rem] h-[50rem] bg-blue-900/10 rounded-full blur-[120px] pointer-events-none"></div>
@@ -349,8 +403,6 @@ export default function ChatbotAIPage({ user }) {
         <PageSkeleton />
       ) : isChatStarted ? (
         <div className="flex flex-col flex-1 h-full w-full max-w-5xl mx-auto relative z-10">
-          
-          {/* Chat History Area */}
           <div ref={msgContainerRef} className="flex-1 overflow-y-auto px-4 md:px-6 pt-6 pb-4 custom-scrollbar scroll-smooth">
             <div className="max-w-3xl mx-auto w-full">
                 {messages.map((msg) => (
@@ -359,8 +411,6 @@ export default function ChatbotAIPage({ user }) {
                 <div ref={messagesEndRef} />
             </div>
           </div>
-
-          {/* Input Area */}
           <div className="input-area-wrapper w-full pb-6 px-4 md:px-6 pt-2">
             <ChatInput
               isCentered={false}
@@ -381,10 +431,8 @@ export default function ChatbotAIPage({ user }) {
           </div>
         </div>
       ) : (
-        // Welcome Screen
         <div className="flex flex-col items-center justify-center flex-1 w-full max-w-4xl mx-auto px-4 relative z-10">
           <div className="text-center mb-12 space-y-6 animate-in fade-in zoom-in duration-500">
-            {/* Logo Container */}
             <div className="inline-flex items-center justify-center w-24 h-24 rounded-[2rem] bg-gradient-to-br from-cyan-500 to-blue-600 shadow-[0_0_50px_rgba(34,211,238,0.4)] mb-4 ring-1 ring-white/20">
                 <Bot size={48} className="text-white" />
             </div>
@@ -394,7 +442,7 @@ export default function ChatbotAIPage({ user }) {
               </span>
             </h1>
             <p className="text-xl text-gray-400 max-w-xl mx-auto font-light leading-relaxed">
-              I'm HyperX AI. Ready to assist with code, creativity, and complexity.
+              I'm HyperX AI. Powered by Gemini.
             </p>
           </div>
           

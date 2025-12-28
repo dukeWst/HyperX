@@ -100,20 +100,32 @@ export default function App() {
     const MIN_LOAD_TIME = 1500;
     const startTime = Date.now();
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const elapsed = Date.now() - startTime;
-      const remaining = Math.max(0, MIN_LOAD_TIME - elapsed);
-      
-      setTimeout(() => {
-        setUser(session?.user || null);
-        setIsFadingOut(true); // Bắt đầu hiệu ứng mờ dần
+    supabase.auth.getSession()
+      .then(({ data: { session }, error }) => {
+        if (error) {
+          console.error("Supabase session error:", error.message);
+          // If the error is about refresh token, we should clear the session
+          if (error.message.includes("Refresh Token")) {
+             supabase.auth.signOut();
+          }
+        }
         
-        // Đợi 1s cho hiệu ứng CSS rồi mới gỡ Loader
+        const elapsed = Date.now() - startTime;
+        const remaining = Math.max(0, MIN_LOAD_TIME - elapsed);
+        
         setTimeout(() => {
-          setIsAuthLoading(false);
-        }, 1000);
-      }, remaining);
-    });
+          setUser(session?.user || null);
+          setIsFadingOut(true); 
+          
+          setTimeout(() => {
+            setIsAuthLoading(false);
+          }, 1000);
+        }, remaining);
+      })
+      .catch((err) => {
+        console.error("Unexpected session error:", err);
+        setIsAuthLoading(false);
+      });
 
     // Lắng nghe sự thay đổi (Đăng nhập/Đăng xuất)
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
