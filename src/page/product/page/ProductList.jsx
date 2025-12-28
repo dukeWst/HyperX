@@ -63,7 +63,7 @@ const ProductList = ({ handleSearchSubmit, search, isLoading, products, formatCu
                         ))}
                     </div>
                 ) : products.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-gray-500 border border-dashed border-white/10 rounded-3xl bg-white/5 mx-auto max-w-2xl">
+                    <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-gray-500 border border-dashed border-white/10 rounded-3xl bg-white/5 mx-auto max-w-full">
                         <div className="bg-white/5 p-4 rounded-full mb-4">
                             <Package size={48} className="opacity-50" />
                         </div>

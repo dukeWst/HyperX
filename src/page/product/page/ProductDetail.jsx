@@ -12,7 +12,7 @@ import {
 
 import UserAvatar from '../../../components/UserAvatar';
 
-const ProductDetail = () => {
+const ProductDetail = ({ user }) => {
 
     const { id } = useParams();
     const navigate = useNavigate();
@@ -22,7 +22,6 @@ const ProductDetail = () => {
     const menuRef = useRef(null);
 
     const [product, setProduct] = useState(null);
-    const [currentUser, setCurrentUser] = useState(null);
 
     const [relatedProducts, setRelatedProducts] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -61,19 +60,44 @@ const ProductDetail = () => {
         setIsDeleting(false);
     };
 
-    const handleDownloadAction = (osName) => {
+    const handleDownloadAction = async (osName) => {
         const url = product?.download_links?.[osName];
         if (!url) {
             alert(`No installer found for ${osName}`);
             return;
         }
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `${product.name.replace(/\s+/g, "_")}_${osName}`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setShowModal(false);
+
+        try {
+            // Extract original name from storage path (remove timestamp prefix)
+            const rawName = url.split('/').pop().split('?')[0];
+            const originalName = rawName.includes('_') ? rawName.split('_').slice(1).join('_') : rawName;
+            const finalDownloadName = originalName || `${product.name.replace(/\s+/g, "_")}_${osName}`;
+
+            setShowModal(false);
+            
+            // Fetch file as blob to force custom filename (bypass cross-origin limitation)
+            const response = await fetch(url);
+            if (!response.ok) throw new Error("Network response was not ok");
+            
+            const blob = await response.blob();
+            const blobUrl = window.URL.createObjectURL(blob);
+            
+            const a = document.createElement("a");
+            a.href = blobUrl;
+            a.download = finalDownloadName;
+            document.body.appendChild(a);
+            a.click();
+            
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(blobUrl);
+        } catch (err) {
+            console.error("Download failed:", err);
+            // Fallback to direct link if fetch fails
+            const a = document.createElement("a");
+            a.href = url;
+            a.target = "_blank";
+            a.click();
+        }
     };
 
     useEffect(() => {
@@ -105,9 +129,6 @@ const ProductDetail = () => {
 
             const enrichedProduct = { ...productData, profiles: profile };
             setProduct(enrichedProduct);
-
-            const { data: userData } = await supabase.auth.getUser();
-            if (userData?.user) setCurrentUser(userData.user);
 
             let query = supabase.from("products")
                 .select("*")
@@ -154,7 +175,7 @@ const ProductDetail = () => {
         email: userEmail,
         avatar_url: product?.profiles?.avatar_url || null
     };
-    const isOwner = currentUser?.email === product.email_upload;
+    const isOwner = user?.id === product?.user_id || user?.email === product?.email_upload;
 
     return (
         <main ref={scrollRef} className="bg-[#05050A] min-h-screen pt-20 pb-12 relative isolate overflow-hidden">

@@ -39,12 +39,7 @@ export default function Community({ user }) {
 
     useEffect(() => {
         const load = async () => {
-            let u = user;
-            if (!u) {
-                const { data } = await supabase.auth.getUser();
-                u = data.user;
-            }
-            setCurrentUser(u);
+            setCurrentUser(user);
             
             // Fecth Total Members
             const { count } = await supabase.from('profiles').select('*', { count: 'exact', head: true });

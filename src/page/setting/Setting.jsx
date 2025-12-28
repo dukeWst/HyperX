@@ -20,20 +20,14 @@ const Setting = ({ user }) => {
     
     const [uploading, setUploading] = useState(false);
     const fileInputRef = useRef(null);
-
     useEffect(() => {
         const loadUser = async () => {
-            let current = user;
-            if (!current) {
-                const { data: userData } = await supabase.auth.getUser();
-                current = userData.user;
-            }
-            setCurrentUser(current);
-            if (current) {
+            setCurrentUser(user);
+            if (user) {
                 setFormData({
-                    name: current.user_metadata?.full_name || "",
-                    email: current.email || "",
-                    avatar_url: current.user_metadata?.avatar_url || "",
+                    name: user.user_metadata?.full_name || "",
+                    email: user.email || "",
+                    avatar_url: user.user_metadata?.avatar_url || "",
                     currentPassword: "",
                     newPassword: "",
                     confirmPassword: "",

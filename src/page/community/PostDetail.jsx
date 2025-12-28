@@ -4,7 +4,7 @@ import { supabase } from "../../routes/supabaseClient";
 import PostItem from "./PostItem"; 
 import { ArrowLeft } from "lucide-react";
 
-const PostDetail = () => {
+const PostDetail = ({ user }) => {
     const { id } = useParams(); 
     const navigate = useNavigate();
     
@@ -15,7 +15,6 @@ const PostDetail = () => {
     useEffect(() => {
         const fetchPostDetail = async () => {
             setIsLoading(true);
-            const { data: { user } } = await supabase.auth.getUser();
             setCurrentUser(user);
 
             const { data, error } = await supabase
@@ -51,7 +50,7 @@ const PostDetail = () => {
         };
 
         if (id) fetchPostDetail();
-    }, [id]);
+    }, [id, user]);
 
     const handlePostDeleted = () => {
         navigate('/community'); 

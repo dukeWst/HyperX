@@ -108,12 +108,12 @@ const ACCEPT_ATTR = {
   Linux: ".deb, .rpm, .AppImage, .tar.gz, .sh"
 };
 
-const NewProduct = () => {
+const NewProduct = ({ user: passingUser }) => {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEditMode = Boolean(id);
 
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(passingUser);
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -137,27 +137,35 @@ const NewProduct = () => {
   const [uploadProgress, setUploadProgress] = useState({});
   const [imageProgress, setImageProgress] = useState(0);
 
+  // Sync user from prop
   useEffect(() => {
-    (async () => {
-      const { data } = await supabase.auth.getUser();
-      if (data?.user) setUser(data.user);
+    if (passingUser) setUser(passingUser);
+  }, [passingUser]);
 
-      if (isEditMode) {
-        const { data: product } = await supabase.from("products").select("*").eq("id", id).single();
+  // Fetch product data on edit mode
+  useEffect(() => {
+    if (isEditMode && id) {
+      (async () => {
+        const { data: product, error: fetchError } = await supabase.from("products").select("*").eq("id", id).single();
+        console.log("Edit Mode - Fetching ID:", id);
+        console.log("Edit Mode - Fetched Product:", product);
+        if (fetchError) console.error("Edit Mode - Fetch Error:", fetchError);
+        
         if (product) {
           setProductName(product.name || "");
           setDescription(product.description || "");
           setInstructions(product.instructions || "");
           setPrice(product.price ?? "");
-          const app = Array.isArray(product.tag) ? product.tag.find((t) => ["Software", "Game"].includes(t)) || "" : "";
-          const os = Array.isArray(product.tag) ? product.tag.filter((t) => KNOWN_OS.includes(t)) : [];
+          const tags = Array.isArray(product.tag) ? product.tag : (typeof product.tag === 'string' ? product.tag.split(',').map(t => t.trim()) : []);
+          const app = tags.find((t) => ["Software", "Game"].includes(t)) || "";
+          const os = tags.filter((t) => KNOWN_OS.includes(t));
           setApplicationType(app);
           setOsTags(os);
           setExistingImageUrl(product.image_url || null);
           setExistingDownloadLinks(product.download_links || {});
         }
-      }
-    })();
+      })();
+    }
   }, [id, isEditMode]);
 
   useEffect(() => {
@@ -257,8 +265,7 @@ const NewProduct = () => {
   };
 
   const uploadInstaller = async (file, os) => {
-    const ext = getExtension(file.name);
-    const safeName = `${Date.now()}_${Math.random().toString(36).slice(2)}_${os}.${ext}`;
+    const safeName = `${Date.now()}_${file.name}`;
     return await uploadViaSignedUrl("product-installers", safeName, file, (p) => setUploadProgress((prev) => ({ ...prev, [os]: p })));
   };
 
@@ -306,11 +313,16 @@ const NewProduct = () => {
         finalImage = await uploadImage(selectedImage);
       }
 
-      let downloadLinks = { ...existingDownloadLinks };
+      // Fix: Only keep download links for currently selected OS tags
+      let downloadLinks = {};
       for (const os of osTags) {
         if (filesByOS[os]) {
+          // If a new file was uploaded for this OS
           const url = await uploadInstaller(filesByOS[os], os);
           downloadLinks[os] = url;
+        } else if (existingDownloadLinks[os]) {
+          // Keep existing link for this OS if no new file was uploaded
+          downloadLinks[os] = existingDownloadLinks[os];
         }
       }
 
@@ -319,21 +331,31 @@ const NewProduct = () => {
         description,
         instructions,
         price: Number(price) || 0,
-        tag: [applicationType, ...osTags],
+        tag: [applicationType, ...osTags].filter(Boolean),
         image_url: finalImage,
         download_links: downloadLinks,
         ...(isEditMode ? {} : {
-              user_id: user?.id || null,
-              name_upload: user?.user_metadata?.full_name || null,
-              email_upload: user?.email || null
-            })
+          user_id: user?.id || null,
+          name_upload: user?.user_metadata?.full_name || null,
+          email_upload: user?.email || null
+        })
       };
 
-      const result = isEditMode
-        ? await supabase.from("products").update(payload).eq("id", id)
-        : await supabase.from("products").insert([payload]);
+      console.log("Submission - Target ID:", id);
+      console.log("Submission - Current User ID:", user?.id);
+      console.log("Submission - Payload:", payload);
 
+      const result = isEditMode
+        ? await supabase.from("products").update(payload).eq("id", id).select()
+        : await supabase.from("products").insert([payload]).select();
+
+      console.log("Product operation result:", result);
       if (result.error) throw result.error;
+      
+      // Fix: Check if update actually affected any rows (might fail due to RLS without returning an error)
+      if (isEditMode && (!result.data || result.data.length === 0)) {
+        throw new Error("You might not have permission to edit this product or the product no longer exists.");
+      }
 
       setMessage(isEditMode ? "Product updated successfully!" : "Product created successfully!");
       setIsSuccess(true);
