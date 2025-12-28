@@ -18,7 +18,7 @@ const modelName = "gemini-flash-latest";
 const apiUrlBase = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`; 
 const apiUrl = `${apiUrlBase}?key=${apiKey}`;
 
-const MAX_HISTORY_TURNS = 10;
+const MAX_HISTORY_TURNS = 3;
 const systemInstruction = "You are HyperX AI, a helpful, witty, and knowledgeable assistant for developers. You answer in Vietnamese unless asked otherwise. Format code blocks beautifully.";
 
 // --- HELPERS ---
