@@ -5,15 +5,39 @@ import {
     User, Smile, MoreVertical, Trash2
 } from "lucide-react";
 import { 
-    Dialog, Transition, TransitionChild, DialogPanel, DialogTitle,
+    Dialog, Transition, DialogPanel, DialogTitle,
     Menu, MenuButton, MenuItems, MenuItem 
 } from '@headlessui/react';
 import { useNavigate } from 'react-router-dom';
 import UserAvatar from './UserAvatar';
 
+// --- HELPER FUNCTIONS ---
+
+// 1. Format giờ phút (HH:mm)
+const formatTime = (dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+};
+
+// 2. Logic kiểm tra hiển thị timestamp separator
+// Trả về true nếu:
+// - Là tin nhắn đầu tiên (prevIso = null)
+// - Hoặc khoảng cách giữa 2 tin nhắn > 30 phút
+const shouldShowTimestamp = (currentIso, prevIso) => {
+    if (!prevIso) return true; // Luôn hiện cho tin nhắn đầu tiên
+    
+    const current = new Date(currentIso);
+    const prev = new Date(prevIso);
+    
+    const diffMs = current - prev; // Khoảng cách mili giây
+    const diffMinutes = diffMs / (1000 * 60);
+    
+    return diffMinutes > 30;
+};
+
 // ==========================================
 // 1. COMPONENT CON: CHAT SESSION
-// (Chịu trách nhiệm hiển thị UI Chat hoặc Avatar)
 // ==========================================
 const ChatSession = ({ 
     recipient, 
@@ -41,7 +65,6 @@ const ChatSession = ({
             setLoading(true);
             const ids = [currentUser?.id, recipient?.id].sort();
             
-            // Tìm hội thoại
             const { data: existing } = await supabase
                 .from('conversations')
                 .select('*')
@@ -56,7 +79,6 @@ const ChatSession = ({
                 setClearedAt(myClearedAt);
                 await fetchMessages(existing.id, myClearedAt);
             } else {
-                // Tạo mới
                 const { data: newConv } = await supabase
                     .from('conversations')
                     .insert({ user_1: ids[0], user_2: ids[1] })
@@ -93,7 +115,6 @@ const ChatSession = ({
                 const newMsg = payload.new;
                 if (!newMsg) return;
 
-                // Nếu tin nhắn tới mà mình đang KHÔNG mở (đang ở dạng avatar) -> Hiện chấm đỏ
                 if (newMsg.sender_id !== currentUser.id && !isOpen) {
                     setHasUnread(true);
                 }
@@ -108,18 +129,15 @@ const ChatSession = ({
         return () => supabase.removeChannel(channel);
     }, [conversation, clearedAt, isOpen, currentUser]);
 
-    // Tự động xóa chấm đỏ khi chat box được mở ra
     useEffect(() => {
         if (isOpen) setHasUnread(false);
     }, [isOpen]);
 
-    // Scroll xuống cuối
     useEffect(() => {
         if (isOpen && scrollRef.current) {
             scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
         }
 
-        // Mark as read in DB if open
         if (isOpen && conversation && messages.length > 0 && currentUser) {
             const unreadMessages = messages.filter(m => !m.is_read && m.sender_id !== currentUser.id);
             if (unreadMessages.length > 0) {
@@ -136,15 +154,12 @@ const ChatSession = ({
         }
     }, [messages, isOpen, conversation, currentUser]);
 
-    // Listen for clear events from Header
     useEffect(() => {
         const handleCleared = (e) => {
             const { conversationId } = e.detail;
             if (conversation && conversation.id === conversationId) {
-                // Determine new cleared date (now)
                 const now = new Date().toISOString();
                 setClearedAt(now);
-                // Clear messages immediately
                 setMessages([]);
             }
         };
@@ -167,7 +182,6 @@ const ChatSession = ({
         });
 
         if (!error) {
-            // Update updated_at để conversation ngoi lên đầu
             await supabase
                 .from('conversations')
                 .update({ updated_at: new Date().toISOString() })
@@ -192,19 +206,15 @@ const ChatSession = ({
         return (
             <div className="relative group pointer-events-auto">
                 <button 
-                    onClick={() => onToggle(true)} // Gọi lên cha để mở Chat Box
+                    onClick={() => onToggle(true)}
                     className="w-14 h-14 bg-[#161922] rounded-2xl shadow-xl border border-cyan-500/30 flex items-center justify-center transition-all hover:scale-110 active:scale-95 hover:border-cyan-400 overflow-hidden"
                     title={recipient.full_name}
                 >
                     <UserAvatar user={{ raw_user_meta_data: recipient }} size="md" className="pointer-events-none"/>
-                    
-                    {/* Chấm đỏ thông báo */}
                     {hasUnread && (
                         <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-[#05050A] animate-pulse shadow-lg shadow-red-500/50"></div>
                     )}
                 </button>
-
-                {/* Nút X nhỏ để tắt hẳn session */}
                 <button 
                     onClick={(e) => { e.stopPropagation(); onRemove(); }}
                     className="absolute -top-2 -left-2 w-5 h-5 bg-gray-700 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-red-500 text-[10px] shadow-lg z-10"
@@ -266,11 +276,9 @@ const ChatSession = ({
                 </Menu>
 
                 <div className="flex items-center gap-1">
-                    {/* Nút Minimize: Gọi hàm onToggle(false) để thu nhỏ về avatar */}
                     <button onClick={() => onToggle(false)} className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-colors">
                         <Minus size={18} />
                     </button>
-                    {/* Nút Close: Xóa hẳn session */}
                     <button onClick={onRemove} className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-colors">
                         <X size={18} />
                     </button>
@@ -278,7 +286,8 @@ const ChatSession = ({
             </div>
 
             {/* MESSAGES */}
-            <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-1 custom-scrollbar bg-gradient-to-b from-transparent to-black/20">
+            <div ref={scrollRef} className="flex-1 overflow-y-auto custom-scrollbar bg-gradient-to-b from-transparent to-black/20">
+                <div className="min-h-full flex flex-col justify-end p-4 space-y-1">
                 {loading && messages.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full gap-3 opacity-50">
                         <Loader2 className="animate-spin text-cyan-400" size={24} />
@@ -291,16 +300,40 @@ const ChatSession = ({
                 ) : (
                     messages.map((msg, i) => {
                         const isMe = msg.sender_id === currentUser?.id;
+                        
+                        // --- LOGIC HIỂN THỊ THỜI GIAN GIỮA CÁC ĐOẠN CHAT ---
+                        const prevMsg = messages[i - 1];
+                        const showSeparator = shouldShowTimestamp(msg.created_at, prevMsg?.created_at);
+
                         return (
-                            <div key={msg.id || i} className={`flex items-end gap-2 ${isMe ? 'flex-row-reverse' : 'flex-row'} animate-in fade-in duration-300`}>
-                                {!isMe && <div className="mb-1"><UserAvatar user={{ raw_user_meta_data: recipient }} size="sm" className="ring-1 ring-white/10" /></div>}
-                                <div className={`max-w-[75%] rounded-[1.2rem] px-4 py-2.5 text-sm shadow-sm break-words whitespace-pre-wrap ${isMe ? 'bg-cyan-600 text-white' : 'bg-white/5 text-gray-200 border border-white/5'}`}>
-                                    {msg.content}
+                            <React.Fragment key={msg.id || i}>
+                                {/* SEPARATOR TIMESTAMP */}
+                                {showSeparator && (
+                                    <div className="flex justify-center my-4 animate-in fade-in duration-500">
+                                        <span className="text-[10px] text-gray-500 font-medium bg-white/5 px-2 py-0.5 rounded-full border border-white/5">
+                                            {formatTime(msg.created_at)}
+                                        </span>
+                                    </div>
+                                )}
+
+                                {/* MESSAGE BUBBLE */}
+                                <div className={`flex items-end gap-2 group ${isMe ? 'flex-row-reverse' : 'flex-row'} animate-in fade-in duration-300`}>
+                                    {!isMe && <div className="mb-1"><UserAvatar user={{ raw_user_meta_data: recipient }} size="sm" className="ring-1 ring-white/10" /></div>}
+                                    
+                                    <div className={`max-w-[75%] rounded-[1.2rem] px-4 py-2.5 text-sm shadow-sm break-words whitespace-pre-wrap ${isMe ? 'bg-cyan-600 text-white' : 'bg-white/5 text-gray-200 border border-white/5'}`}>
+                                        {msg.content}
+                                    </div>
+
+                                    {/* Hover Timestamp (Bên cạnh tin nhắn) */}
+                                    <div className="mb-2 text-[10px] text-gray-500 font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-200 select-none whitespace-nowrap">
+                                        {formatTime(msg.created_at)}
+                                    </div>
                                 </div>
-                            </div>
+                            </React.Fragment>
                         );
                     })
                 )}
+                </div>
             </div>
 
             {/* INPUT */}
@@ -342,16 +375,11 @@ const ChatSession = ({
 
 // ==========================================
 // 2. COMPONENT CHA: CHAT BOX
-// (Layout & Quản lý trạng thái Active)
 // ==========================================
 const ChatBox = ({ currentUser }) => {
-    // Danh sách tất cả các user đang chat (dù mở hay đóng)
     const [activeSessions, setActiveSessions] = useState([]);
-    
-    // ID của user đang được mở to (nếu null nghĩa là tất cả đều thu nhỏ)
     const [activeChatId, setActiveChatId] = useState(null);
 
-    // Lắng nghe sự kiện mở chat từ nơi khác (VD: Profile Page)
     useEffect(() => {
         const handleOpenChat = (e) => {
             const newUser = e.detail;
@@ -362,7 +390,6 @@ const ChatBox = ({ currentUser }) => {
                 if (!exists) return [...prev, newUser];
                 return prev;
             });
-            // Tự động mở to khi click "Message"
             setActiveChatId(newUser.id);
         };
 
@@ -370,27 +397,21 @@ const ChatBox = ({ currentUser }) => {
         return () => window.removeEventListener('hyperx-open-chat', handleOpenChat);
     }, [currentUser]);
 
-    // Lọc ra: Ai đang mở to? Ai đang thu nhỏ?
     const activeSessionData = activeSessions.find(s => s.id === activeChatId);
     const inactiveSessions = activeSessions.filter(s => s.id !== activeChatId);
 
     if (!currentUser || activeSessions.length === 0) return null;
 
     return (
-        // CONTAINER CHÍNH: Xếp ngang (Row) và Căn đáy (Items End)
-        // pointer-events-none để không chặn click vào web phía sau ở những chỗ trống
         <div className="fixed bottom-6 right-6 z-[9999] flex flex-row items-end gap-4 pointer-events-none">
-            
-            {/* --- KHU VỰC 1: CHAT BOX TO (BÊN TRÁI) --- */}
             <div className="flex-shrink-0">
                 {activeSessionData && (
                     <ChatSession 
                         key={activeSessionData.id}
                         recipient={activeSessionData}
                         currentUser={currentUser}
-                        isOpen={true} // Luôn luôn TRUE ở khu vực này
+                        isOpen={true}
                         onToggle={(shouldOpen) => {
-                            // Nếu bấm nút (-) -> Đóng lại -> ID về null -> Tự động nhảy sang cột phải
                             if (!shouldOpen) setActiveChatId(null);
                         }}
                         onRemove={() => {
@@ -401,17 +422,14 @@ const ChatBox = ({ currentUser }) => {
                 )}
             </div>
 
-            {/* --- KHU VỰC 2: CỘT AVATAR (BÊN PHẢI) --- */}
-            {/* flex-col-reverse: Xếp chồng từ dưới lên trên */}
             <div className="flex flex-col-reverse gap-3 pb-1">
                 {inactiveSessions.map((recipient) => (
                     <ChatSession 
                         key={recipient.id}
                         recipient={recipient}
                         currentUser={currentUser}
-                        isOpen={false} // Luôn luôn FALSE ở khu vực này
+                        isOpen={false}
                         onToggle={(shouldOpen) => {
-                            // Nếu bấm vào avatar -> Mở ra -> Set ID -> Tự động nhảy sang trái
                             if (shouldOpen) setActiveChatId(recipient.id);
                         }}
                         onRemove={() => {
