@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
   Loader2, Bot, Copy, CircleCheck, Sparkles, User
 } from "lucide-react";
-import { supabase } from '../../routes/supabaseClient'; // Đảm bảo đường dẫn này đúng
+import { supabase } from '../../routes/supabaseClient'; // Vẫn giữ để lấy User Profile
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
@@ -218,16 +218,15 @@ export default function ChatbotAIPage({ user }) {
     showAlert("Stopped.", "info", 2000);
   }, [abortCtrl]);
 
-  // --- GEMINI API FUNCTION (GỌI QUA SUPABASE EDGE FUNCTION) ---
+  // --- GEMINI API FUNCTION (ĐÃ SỬA: GỌI QUA NETLIFY FUNCTION) ---
   const callGeminiApi = useCallback(async (userPrompt, chatHistory = [], imageFile = null, onChunk = null) => {
     setAlert(null);
 
-    // Chuẩn bị ảnh dưới dạng Base64 (nếu có) để gửi lên Server
+    // Chuẩn bị ảnh dưới dạng Base64 (nếu có)
     let imageBase64 = null;
     if (imageFile) {
         try {
             const base64Full = await convertToBase64(imageFile);
-            // Lấy phần dữ liệu sau dấu phẩy (bỏ prefix data:image/...)
             imageBase64 = base64Full.split(",")[1];
         } catch (err) {
             console.error("Lỗi convert ảnh:", err);
@@ -241,29 +240,36 @@ export default function ChatbotAIPage({ user }) {
     setAbortCtrl(controller);
 
     try {
-      // ✅ GỌI EDGE FUNCTION: 'gemini-chat' (hoặc tên bạn đã đặt)
-      const { data, error } = await supabase.functions.invoke('chat-ai', {
-        body: { 
+      // ✅ THAY ĐỔI QUAN TRỌNG: Gọi về Netlify Functions
+      const response = await fetch('/.netlify/functions/chat', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
             message: userPrompt,
             image: imageBase64,
-            history: chatHistory 
-        }
+            history: chatHistory
+        }),
+        signal: controller.signal
       });
 
-      if (error) {
-          throw new Error(error.message || "Lỗi kết nối Supabase Edge Function");
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || `HTTP Error: ${response.status}`);
       }
 
-      // Nhận kết quả từ server (Server trả về JSON { text: "..." })
-      accumulated = data.text || data.reply || "";
+      // Netlify function trả về { text: "..." }
+      accumulated = data.text || "";
 
-      // Giả lập hiệu ứng gõ chữ (vì Edge Function hiện tại chưa Streaming)
+      // Giả lập hiệu ứng gõ chữ
       if (onChunk && accumulated) {
         const revealSpeed = 10; 
         let i = 0; 
         await new Promise((resolve) => {
           simIntervalRef.current = setInterval(() => { 
-              i += 5; // Tăng tốc độ hiển thị lên chút
+              i += 5; // Tăng tốc độ hiển thị
               if (i > accumulated.length) i = accumulated.length;
               
               onChunk(accumulated.slice(0, i)); 
@@ -279,7 +285,6 @@ export default function ChatbotAIPage({ user }) {
 
     } catch (err) {
       if (err.name === "AbortError") return { responseText: accumulated };
-      // Nếu lỗi, trả về lỗi để hiển thị
       console.error("API Error:", err);
       throw err;
     } finally { 
@@ -358,7 +363,6 @@ export default function ChatbotAIPage({ user }) {
 
   // --- EFFECTS ---
   useEffect(() => { isTypingRef.current = isTyping; }, [isTyping]);
-
 
   useEffect(() => {
     const handleClickOutside = (event) => { if (isMenuOpen && !event.target.closest('.input-area-wrapper')) setIsMenuOpen(false); };
