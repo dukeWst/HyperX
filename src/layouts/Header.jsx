@@ -2,7 +2,8 @@ import { Dialog, DialogPanel, Transition, TransitionChild } from '@headlessui/re
 import { 
     Bars3Icon, XMarkIcon, UserIcon, QuestionMarkCircleIcon, 
     Cog6ToothIcon, ArrowRightOnRectangleIcon, BellIcon, CheckCircleIcon,
-    TrashIcon, AtSymbolIcon, MagnifyingGlassIcon // <--- 1. IMPORT THÊM ICON KÍNH LÚP
+    TrashIcon, AtSymbolIcon, MagnifyingGlassIcon, ChatBubbleLeftEllipsisIcon,
+    EllipsisHorizontalIcon, ArrowsPointingOutIcon, PencilSquareIcon // <--- Added Icons
 } from '@heroicons/react/24/outline';
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { HeartIcon, ChatBubbleLeftIcon, UserPlusIcon } from '@heroicons/react/24/solid';
@@ -12,6 +13,7 @@ import { supabase } from '../routes/supabaseClient'; // Đảm bảo đường d
 import LazyLoading from '../page/enhancements/LazyLoading'; // Đảm bảo đường dẫn đúng
 import UserAvatar from '../components/UserAvatar'; // Đảm bảo đường dẫn đúng
 import NeedAuthModal from '../components/NeedAuthModal';
+import { MessageCircle } from 'lucide-react';
 
 const navigation = [
     { name: 'Product', href: 'product', private: true },
@@ -30,6 +32,16 @@ const Header = ({ user }) => {
     // --- State Dropdown ---
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const [notiOpen, setNotiOpen] = useState(false);
+    const [msgOpen, setMsgOpen] = useState(false); // <--- State Message Dropdown
+    const [msgSearchQuery, setMsgSearchQuery] = useState(""); // <--- Search Query for Messages
+    const [conversations, setConversations] = useState([]);
+    
+    // --- State Delete Conversation ---
+    const [showOptionsId, setShowOptionsId] = useState(null); 
+    const [optionsPos, setOptionsPos] = useState({ top: 0, right: 0 }); // Pos for fixed menu
+    const [deleteConvModalOpen, setDeleteConvModalOpen] = useState(false);
+    const [convToDelete, setConvToDelete] = useState(null);
+    
     // --- State Modal ---
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false); 
 
@@ -46,9 +58,13 @@ const Header = ({ user }) => {
     const [isSearching, setIsSearching] = useState(false);
     const [searchOpen, setSearchOpen] = useState(false);
 
+    const [searchExpanded, setSearchExpanded] = useState(false); // <--- State Expand Search
+
     const dropdownRef = useRef(null);
     const notiRef = useRef(null);
+    const msgRef = useRef(null); // <--- Ref Messages
     const searchRef = useRef(null);
+    const optionsMenuRef = useRef(null); // <--- Ref for Fixed Options Menu
 
     const closeDeleteModal = () => setIsDeleteModalOpen(false);
     const openDeleteModal = () => setIsDeleteModalOpen(true);
@@ -57,23 +73,8 @@ const Header = ({ user }) => {
         const handleScroll = () => setScrolled(window.scrollY > 10);
         window.addEventListener('scroll', handleScroll);
         
-        // Click outside listener for search & other dropdowns
-        const handleClickOutside = (event) => {
-            if (searchRef.current && !searchRef.current.contains(event.target)) {
-                setSearchOpen(false);
-            }
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-                setDropdownOpen(false);
-            }
-            if (notiRef.current && !notiRef.current.contains(event.target)) {
-                setNotiOpen(false);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-
         return () => {
             window.removeEventListener('scroll', handleScroll);
-            document.removeEventListener('mousedown', handleClickOutside);
         };
     }, []);
 
@@ -132,6 +133,83 @@ const Header = ({ user }) => {
             console.error("Error fetching notifications:", error);
         }
     }, [user]);
+
+    // --- Logic Fetch Conversations (Message History) ---
+    useEffect(() => {
+        if (!msgOpen || !user?.id) return;
+
+        const fetchConversations = async () => {
+            try {
+                // 1. Fetch conversations (tạm thời sort theo created_at để lấy recent ones)
+                // Lấy nhiều hơn 1 chút để sort lại theo message
+                const { data: convs, error } = await supabase
+                    .from('conversations')
+                    .select('*')
+                    .or(`user_1.eq.${user.id},user_2.eq.${user.id}`)
+                    .order('created_at', { ascending: false })
+                    .limit(20);
+
+                if (error) {
+                    console.error("Error fetching conversations table:", error);
+                    return;
+                }
+                
+                if (!convs || convs.length === 0) {
+                    setConversations([]);
+                    return;
+                }
+
+                // 2. Enrich + Fetch Last Message
+                const enriched = await Promise.all(convs.map(async (c) => {
+                    const partnerId = c.user_1 === user.id ? c.user_2 : c.user_1;
+                    
+                    // Fetch Partner Profile
+                    const { data: partner } = await supabase
+                        .from('profiles')
+                        .select('id, full_name, avatar_url, email')
+                        .eq('id', partnerId)
+                        .single();
+                    
+                    // Fetch Last Message
+                    const { data: lastMsg } = await supabase
+                        .from('messages')
+                        .select('content, created_at, sender_id')
+                        .eq('conversation_id', c.id)
+                        .order('created_at', { ascending: false })
+                        .limit(1)
+                        .maybeSingle();
+
+                    return {
+                        ...c,
+                        partner,
+                        lastMessage: lastMsg
+                    };
+                }));
+
+                // 3. Filter empty conversations & Sort by Last Message Time
+                const activeConvs = enriched.filter(c => c.lastMessage);
+                
+                const sorted = activeConvs.sort((a, b) => {
+                    const timeA = new Date(a.lastMessage.created_at);
+                    const timeB = new Date(b.lastMessage.created_at);
+                    return timeB - timeA;
+                });
+
+                setConversations(sorted);
+            } catch (err) {
+                console.error("Error fetching conversations:", err);
+            }
+        };
+
+        fetchConversations();
+    }, [msgOpen, user]);
+
+    const handleOpenChat = (partner) => {
+        if (!partner) return;
+        setMsgOpen(false);
+        // Dispatch event để ChatBox mở
+        window.dispatchEvent(new CustomEvent('hyperx-open-chat', { detail: partner }));
+    };
 
     // Tracking unread count for badge visibility
     useEffect(() => {
@@ -211,14 +289,70 @@ const Header = ({ user }) => {
         setTimeout(() => setLoggingOut(false), 800);
     };
 
+    // --- XÓA HỘI THOẠI (Soft Delete) ---
+    const handleDeleteClick = (e, conv) => {
+        e.stopPropagation();
+        setConvToDelete(conv);
+        setDeleteConvModalOpen(true);
+        setShowOptionsId(null);
+    };
+
+    const confirmDeleteConv = async () => {
+        if (!convToDelete || !user?.id) return;
+        
+        try {
+            const now = new Date().toISOString();
+            const field = user.id === convToDelete.user_1 ? 'user_1_cleared_at' : 'user_2_cleared_at';
+            
+            const { error } = await supabase
+                .from('conversations')
+                .update({ [field]: now })
+                .eq('id', convToDelete.id);
+
+            if (error) throw error;
+
+            // Remove from local state
+            setConversations(prev => prev.filter(c => c.id !== convToDelete.id));
+            setDeleteConvModalOpen(false);
+            setConvToDelete(null);
+        } catch (err) {
+            console.error("Error deleting conversation:", err);
+            alert("Failed to delete conversation");
+        }
+    };
+
     useEffect(() => {
         const handleClickOutside = (event) => {
+            // Ignore if delete modal is open (let modal handle its own closing/backdrop)
+            if (deleteConvModalOpen) return;
+
+            // Check if click is inside the fixed options menu (using ID for stability)
+            if (event.target.closest('#fixed-conv-options-menu')) {
+                return; // Do nothing if clicking inside options menu
+            }
+
             if (dropdownRef.current && !dropdownRef.current.contains(event.target)) setDropdownOpen(false);
+
             if (notiRef.current && !notiRef.current.contains(event.target)) setNotiOpen(false);
+            if (searchRef.current && !searchRef.current.contains(event.target)) {
+                setSearchOpen(false);
+                if (!searchQuery) setSearchExpanded(false); // Collapse if empty and clicked outside
+            }
+            
+            // Logic cho Message Dropdown & Options
+            if (msgRef.current && !msgRef.current.contains(event.target)) {
+                setMsgOpen(false);
+                setShowOptionsId(null);
+            }
+
+            // Hide options menu if clicked outside (and not in the button itself)
+            if (!event.target.closest('.conv-options-btn')) {
+                setShowOptionsId(null);
+            }
         };
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, []);
+    }, [deleteConvModalOpen, searchQuery]); // Add dependency for deleteConvModalOpen
 
     const getNotiIcon = (type) => {
         switch (type) {
@@ -244,7 +378,7 @@ const Header = ({ user }) => {
     };
 
     // --- STYLE HEADER ---
-    const headerClasses = `fixed inset-x-0 top-0 z-50 transition-all duration-300 border-b ${
+    const headerClasses = `fixed inset-x-0 top-0 z-[10000] transition-all duration-300 border-b ${
         scrolled 
         ? 'bg-[#050505]/80 backdrop-blur-xl border-white/5 shadow-lg shadow-cyan-500/5' 
         : 'bg-transparent border-transparent'
@@ -262,7 +396,7 @@ const Header = ({ user }) => {
             <nav className="flex items-center justify-between p-5 lg:px-8 max-w-[90rem] mx-auto" aria-label="Global">
                 
                 {/* Logo Area */}
-                <div className="flex lg:flex-1">
+                <div className="flex lg:flex-1 items-center gap-4">
                     <Link 
                         to={user ? "/community" : "/"} 
                         onClick={() => {
@@ -277,6 +411,8 @@ const Header = ({ user }) => {
                             HYPER<span className="text-cyan-400">X</span>
                         </span>
                     </Link>
+
+
                 </div>
 
                 {/* Mobile Menu Button */}
@@ -321,25 +457,41 @@ const Header = ({ user }) => {
                 <div className="hidden lg:flex lg:flex-1 lg:justify-end items-center gap-5 relative">
                     {user ? (
                         <>
-                            {/* --- THANH TÌM KIẾM NGƯỜI DÙNG --- */}
-                            <div className="relative group hidden xl:block" ref={searchRef}>
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <MagnifyingGlassIcon className="h-4 w-4 text-gray-500 group-focus-within:text-cyan-400 transition-colors" />
+                            {/* --- THANH TÌM KIẾM NGƯỜI DÙNG (Moved here) --- */}
+                            <div className={`relative group hidden xl:flex items-center transition-all duration-300 ${searchExpanded ? 'w-[300px]' : 'w-10'}`} ref={searchRef}>
+                                
+                                {/* Search Button (Visible when collapsed) */}
+                                <button 
+                                    onClick={() => {
+                                        setSearchExpanded(true);
+                                        setTimeout(() => document.getElementById('search-input-header')?.focus(), 100);
+                                    }}
+                                    className={`absolute left-0 top-1/2 -translate-y-1/2 p-2 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition-all z-10 ${searchExpanded ? 'pointer-events-none opacity-0' : 'opacity-100'}`}
+                                >
+                                    <MagnifyingGlassIcon className="w-5 h-5" />
+                                </button>
+
+                                {/* Expanded Input Area */}
+                                <div className={`flex items-center w-full transition-all duration-300 ${searchExpanded ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-20">
+                                        <MagnifyingGlassIcon className="h-4 w-4 text-cyan-400" />
+                                    </div>
+                                    <input 
+                                        id="search-input-header"
+                                        type="text" 
+                                        placeholder="Search users..." 
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        onFocus={() => searchQuery && setSearchOpen(true)}
+                                        className="w-full bg-[#1A1D24] border border-cyan-500/30 text-gray-200 text-sm rounded-full focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 pl-9 p-2.5 placeholder-gray-500 hover:bg-[#1A1D24]/80 transition-all outline-none shadow-[0_0_15px_rgba(6,182,212,0.1)]"
+                                    />
                                 </div>
-                                <input 
-                                    type="text" 
-                                    placeholder="Search users by email..." 
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    onFocus={() => searchQuery && setSearchOpen(true)}
-                                    className="bg-white/5 border border-white/10 text-gray-300 text-sm rounded-full focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 pl-9 p-2.5 placeholder-gray-500 hover:bg-white/10 transition-all duration-300 ease-in-out outline-none w-[200px] focus:w-[300px]"
-                                />
 
                                 {/* Kết quả tìm kiếm Dropdown */}
                                 {searchOpen && (
-                                    <div className="absolute right-0 mt-3 w-[340px] bg-[#0B0D14] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-[60] animate-in fade-in slide-in-from-top-2 duration-200">
+                                    <div className="absolute top-full left-0 mt-3 w-full min-w-[340px] bg-[#0B0D14] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-[60] animate-in fade-in slide-in-from-top-2 duration-200">
                                         <div className="px-4 py-3 border-b border-white/5 bg-white/5 flex items-center justify-between">
-                                            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">User Results</span>
+                                            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Results</span>
                                             {isSearching && <div className="w-3 h-3 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>}
                                         </div>
                                         
@@ -352,6 +504,7 @@ const Header = ({ user }) => {
                                                         onClick={() => {
                                                             setSearchOpen(false);
                                                             setSearchQuery("");
+                                                            setSearchExpanded(false);
                                                         }}
                                                         className="flex items-center gap-3 p-3 hover:bg-white/5 transition-colors border-b border-white/5 last:border-0"
                                                     >
@@ -379,7 +532,7 @@ const Header = ({ user }) => {
                                                     <div className="p-3 bg-white/5 rounded-full">
                                                         <MagnifyingGlassIcon className="w-6 h-6 text-gray-700" />
                                                     </div>
-                                                    <p className="text-sm text-gray-500">No members found with that email.</p>
+                                                    <p className="text-sm text-gray-500">No members found.</p>
                                                 </div>
                                             ) : (
                                                 <div className="p-10 space-y-4">
@@ -398,7 +551,181 @@ const Header = ({ user }) => {
                                     </div>
                                 )}
                             </div>
-                            {/* ---------------------------------------------------- */}
+
+
+                            {/* --- MESSAGING --- */}
+                            <div className="relative" ref={msgRef}>
+                                <button 
+                                    onClick={() => setMsgOpen(!msgOpen)}
+                                    className={`relative p-2.5 rounded-full transition-all duration-200 group ${msgOpen ? 'bg-cyan-500/20 text-cyan-400' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+                                >
+                                    <MessageCircle className="w-6 h-6 transition-colors" />
+                                    {/* Badge mockup if needed */}
+                                    {/* <span className="absolute top-1 right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-[#0B0D14]"></span> */}
+                                </button>
+
+                                {msgOpen && (
+                                    <div className="absolute right-0 mt-4 w-[360px] rounded-2xl bg-[#1e1e1e] border border-white/10 shadow-2xl z-[110] overflow-hidden origin-top-right animate-in fade-in zoom-in duration-200 ring-1 ring-white/5 font-sans">
+                                        {/* HEADER */}
+                                        <div className="p-4 pb-2">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <h3 className="text-xl font-bold text-white">Chats</h3>
+                                            </div>
+
+                                            {/* SEARCH */}
+                                            <div className="relative mb-3">
+                                                <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="Search Messenger" 
+                                                    value={msgSearchQuery}
+                                                    onChange={(e) => setMsgSearchQuery(e.target.value)}
+                                                    className="w-full bg-[#2a2b2e] text-gray-200 text-sm rounded-full py-2 pl-9 pr-4 focus:outline-none focus:ring-1 focus:ring-cyan-500 placeholder-gray-500"
+                                                />
+                                            </div>
+
+                                            {/* TABS (Mockup) */}
+                                            <div className="flex gap-2">
+                                                <button className="px-3 py-1.5 rounded-full bg-cyan-500/20 text-cyan-400 text-sm font-semibold hover:bg-cyan-500/30 transition-colors">All</button>
+                                                <button className="px-3 py-1.5 rounded-full bg-transparent text-gray-400 text-sm font-medium hover:bg-white/5 transition-colors">Unread</button>
+                                                <button className="px-3 py-1.5 rounded-full bg-transparent text-gray-400 text-sm font-medium hover:bg-white/5 transition-colors">Groups</button>
+                                            </div>
+                                        </div>
+
+                                        {/* LIST */}
+                                        <div className="max-h-[400px] overflow-y-auto custom-scrollbar p-2">
+                                            {conversations.filter(c => {
+                                                if (!msgSearchQuery.trim()) return true;
+                                                const name = c.partner?.full_name?.toLowerCase() || '';
+                                                const email = c.partner?.email?.toLowerCase() || '';
+                                                const q = msgSearchQuery.toLowerCase();
+                                                return name.includes(q) || email.includes(q);
+                                            }).length > 0 ? (
+                                                conversations.filter(c => {
+                                                    if (!msgSearchQuery.trim()) return true;
+                                                    const name = c.partner?.full_name?.toLowerCase() || '';
+                                                    const email = c.partner?.email?.toLowerCase() || '';
+                                                    const q = msgSearchQuery.toLowerCase();
+                                                    return name.includes(q) || email.includes(q);
+                                                }).map((conv) => (
+                                                    <div 
+                                                        key={conv.id}
+                                                        onClick={() => handleOpenChat(conv.partner)}
+                                                        className="flex gap-3 p-2.5 rounded-xl cursor-pointer hover:bg-white/5 transition-colors group items-center relative"
+                                                    >
+                                                        <div className="relative flex-shrink-0">
+                                                            <UserAvatar user={conv.partner} size="md" className="w-14 h-14" />
+                                                        </div>
+                                                        
+                                                        <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                                            <h4 className="text-[15px] font-semibold text-white truncate leading-tight mb-0.5">
+                                                                {conv.partner?.full_name || 'Instagram User'}
+                                                            </h4>
+                                                            <div className="flex items-center gap-1 text-[13px] text-gray-400">
+                                                                <p className="truncate max-w-[160px]">
+                                                                    {conv.lastMessage?.sender_id === user?.id ? 'You: ' : ''}
+                                                                    {conv.lastMessage?.content || 'Sent an attachment'}
+                                                                </p>
+                                                                <span>·</span>
+                                                                <span className="whitespace-nowrap">
+                                                                    {conv.lastMessage 
+                                                                        ? (() => {
+                                                                            const diff = (new Date() - new Date(conv.lastMessage.created_at)) / 1000 / 60; // minutes
+                                                                            if (diff < 60) return `${Math.floor(diff)}m`;
+                                                                            if (diff < 1440) return `${Math.floor(diff/60)}h`;
+                                                                            return new Date(conv.lastMessage.created_at).toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+                                                                        })()
+                                                                        : 'Now'}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* --- OPTIONS BUTTON (Hover) --- */}
+                                                        <div className={`absolute right-4 top-1/2 -translate-y-1/2 ${showOptionsId === conv.id ? 'block' : 'hidden group-hover:block'}`}>
+                                                            <button 
+                                                                className="conv-options-btn p-2 rounded-full bg-[#2a2b2e] hover:bg-[#3e4045] text-white shadow-lg border border-white/10 transition-colors"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    const rect = e.currentTarget.getBoundingClientRect();
+                                                                    // Tính toán vị trí fixed
+                                                                    setOptionsPos({ 
+                                                                        top: rect.bottom + 5, 
+                                                                        right: window.innerWidth - rect.right 
+                                                                    });
+                                                                    setShowOptionsId(showOptionsId === conv.id ? null : conv.id);
+                                                                }}
+                                                            >
+                                                                <EllipsisHorizontalIcon className="w-5 h-5" />
+                                                            </button>
+                                                            {/* Menu removed from here */}
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <div className="flex flex-col items-center justify-center py-12 text-gray-500 gap-3">
+                                                    <ChatBubbleLeftEllipsisIcon className="w-12 h-12 opacity-10" />
+                                                    <p className="text-sm font-medium">
+                                                        {msgSearchQuery.trim() ? "No results found" : "No recent messages"}
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* --- DELETE CONVERSATION MODAL --- */}
+                            {deleteConvModalOpen && (
+                                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+                                    <div className="w-full max-w-md transform overflow-hidden rounded-3xl bg-[#0B0D14] border border-white/10 p-6 shadow-2xl ring-1 ring-white/5 animate-in zoom-in-95 duration-200 relative">
+                                        <button 
+                                            onClick={() => setDeleteConvModalOpen(false)}
+                                            className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
+                                        >
+                                            <XMarkIcon className="w-5 h-5" />
+                                        </button>
+
+                                        <h3 className="text-lg font-bold text-white uppercase mb-4 text-center">Delete Conversation?</h3>
+                                        <p className="text-gray-400 text-sm mb-4 text-center py-6 font-semibold border-t border-white/10">Delete the entire conversation? This can’t be undone.</p>
+                                        
+                                        <div className="flex gap-3">
+                                            <button 
+                                                onClick={() => setDeleteConvModalOpen(false)}
+                                                className="flex-1 px-4 py-3 rounded-xl bg-white/5 text-gray-400 text-xs font-bold uppercase hover:bg-white/10 transition-colors"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button 
+                                                onClick={confirmDeleteConv}
+                                                className="flex-1 px-4 py-3 rounded-xl bg-red-600 text-white text-xs font-bold uppercase hover:bg-red-500 transition-colors shadow-lg shadow-red-600/20"
+                                            >
+                                                Delete All
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* --- FIXED OPTIONS MENU (Z-INDEX CAO HƠN) --- */}
+                            {showOptionsId && (
+                                <div 
+                                    id="fixed-conv-options-menu"
+                                    ref={optionsMenuRef}
+                                    className="fixed w-32 bg-[#2a2b2e] border border-white/10 rounded-lg shadow-xl z-[200] overflow-hidden py-1 animate-in fade-in zoom-in duration-100"
+                                    style={{ top: optionsPos.top, right: optionsPos.right }}
+                                >
+                                    <button 
+                                        onClick={(e) => {
+                                            const c = conversations.find(x => x.id === showOptionsId);
+                                            if(c) handleDeleteClick(e, c);
+                                        }}
+                                        className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-white/5 flex items-center gap-2"
+                                    >
+                                        <TrashIcon className="w-4 h-4" />
+                                        Delete
+                                    </button>
+                                </div>
+                            )}
 
                             {/* --- NOTIFICATION --- */}
                             <div className="relative" ref={notiRef}>

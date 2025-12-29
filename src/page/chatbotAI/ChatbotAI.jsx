@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
   Loader2, Bot, Copy, CircleCheck, Sparkles, User
 } from "lucide-react";
-import { supabase } from '../../routes/supabaseClient';
+import { supabase } from '../../routes/supabaseClient'; // Đảm bảo đường dẫn này đúng
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
@@ -11,15 +11,7 @@ import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import UserAvatar from '../../components/UserAvatar';
 import ChatInput from './ChatInput';
 
-// --- CONFIG (GEMINI FREE) ---
-const getApiKey = () => import.meta.env.VITE_GEMINI_API_KEY || "";
-const apiKey = getApiKey();
-const modelName = "gemini-flash-latest";
-const apiUrlBase = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`; 
-const apiUrl = `${apiUrlBase}?key=${apiKey}`;
-
 const MAX_HISTORY_TURNS = 3;
-const systemInstruction = "You are HyperX AI, a helpful, witty, and knowledgeable assistant for developers. You answer in Vietnamese unless asked otherwise. Format code blocks beautifully.";
 
 // --- HELPERS ---
 const convertToBase64 = (file) => new Promise((resolve, reject) => { 
@@ -187,6 +179,7 @@ export default function ChatbotAIPage({ user }) {
   const [messages, setMessages] = useState([]);
   const [isChatStarted, setIsChatStarted] = useState(false);
   const [input, setInput] = useState("");
+
   const [isTyping, setIsTyping] = useState(false);
   const [userProfile, setUserProfile] = useState(null);
   const [alert, setAlert] = useState(null);
@@ -225,63 +218,81 @@ export default function ChatbotAIPage({ user }) {
     showAlert("Stopped.", "info", 2000);
   }, [abortCtrl]);
 
-  // --- GEMINI API FUNCTION (QUAY VỀ GOOGLE) ---
+  // --- GEMINI API FUNCTION (GỌI QUA SUPABASE EDGE FUNCTION) ---
   const callGeminiApi = useCallback(async (userPrompt, chatHistory = [], imageFile = null, onChunk = null) => {
     setAlert(null);
-    if (!apiKey) { 
-        setAlert({ text: "Missing Gemini API Key", type: "error" }); 
-        return { responseText: "API Key Error" }; 
-    }
 
-    const userContentParts = [{ text: userPrompt }];
+    // Chuẩn bị ảnh dưới dạng Base64 (nếu có) để gửi lên Server
+    let imageBase64 = null;
     if (imageFile) {
-      try { 
-          const base64Full = await convertToBase64(imageFile);
-          const pure = base64Full.split(",")[1];
-          userContentParts.push({ inline_data: { mime_type: imageFile.type, data: pure } }); 
-      } catch { }
+        try {
+            const base64Full = await convertToBase64(imageFile);
+            // Lấy phần dữ liệu sau dấu phẩy (bỏ prefix data:image/...)
+            imageBase64 = base64Full.split(",")[1];
+        } catch (err) {
+            console.error("Lỗi convert ảnh:", err);
+        }
     }
-
-    const payload = {
-      contents: [...chatHistory, { role: "user", parts: userContentParts }],
-      systemInstruction: { parts: [{ text: systemInstruction }] }, 
-    };
 
     let accumulated = "";
+    
+    // Controller để cho phép user bấm nút Stop
     const controller = new AbortController();
     setAbortCtrl(controller);
 
     try {
-      const response = await fetch(apiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-        signal: controller.signal
+      // ✅ GỌI EDGE FUNCTION: 'gemini-chat' (hoặc tên bạn đã đặt)
+      const { data, error } = await supabase.functions.invoke('chat-ai', {
+        body: { 
+            message: userPrompt,
+            image: imageBase64,
+            history: chatHistory 
+        }
       });
-      const result = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(result.error?.message || `HTTP Error ${response.status}`);
+
+      if (error) {
+          throw new Error(error.message || "Lỗi kết nối Supabase Edge Function");
       }
 
-      const candidate = result.candidates?.[0] || null;
-      if (candidate) { accumulated = candidate.content?.parts?.[0]?.text || ""; }
+      // Nhận kết quả từ server (Server trả về JSON { text: "..." })
+      accumulated = data.text || data.reply || "";
 
+      // Giả lập hiệu ứng gõ chữ (vì Edge Function hiện tại chưa Streaming)
       if (onChunk && accumulated) {
-        const revealSpeed = 10; let i = 0; 
+        const revealSpeed = 10; 
+        let i = 0; 
         await new Promise((resolve) => {
           simIntervalRef.current = setInterval(() => { 
-              i+=2; onChunk(accumulated.slice(0, i)); 
-              if (i >= accumulated.length) { clearInterval(simIntervalRef.current); simIntervalRef.current = null; resolve(); } 
+              i += 5; // Tăng tốc độ hiển thị lên chút
+              if (i > accumulated.length) i = accumulated.length;
+              
+              onChunk(accumulated.slice(0, i)); 
+              
+              if (i >= accumulated.length) { 
+                  clearInterval(simIntervalRef.current); 
+                  simIntervalRef.current = null; 
+                  resolve(); 
+              } 
           }, revealSpeed);
         });
       }
+
     } catch (err) {
       if (err.name === "AbortError") return { responseText: accumulated };
+      // Nếu lỗi, trả về lỗi để hiển thị
+      console.error("API Error:", err);
       throw err;
-    } finally { setAbortCtrl(null); if (simIntervalRef.current) { clearInterval(simIntervalRef.current); simIntervalRef.current = null; } }
+    } finally { 
+        setAbortCtrl(null); 
+        if (simIntervalRef.current) { 
+            clearInterval(simIntervalRef.current); 
+            simIntervalRef.current = null; 
+        } 
+    }
+    
     return { responseText: accumulated };
-  }, [apiKey, setAlert, setAbortCtrl]);
+  }, [setAlert, setAbortCtrl]);
+
 
   const handleSendMessage = useCallback(async (e) => {
     if (e && e.preventDefault) e.preventDefault();
@@ -322,7 +333,6 @@ export default function ChatbotAIPage({ user }) {
     };
 
     try {
-      // Quay lại gọi Gemini
       const { responseText } = await callGeminiApi(prompt || "", chatHistory, fileToSend, onChunk);
       
       setMessages((prev) => prev.map((m) => (m.id === botPlaceholderId ? { 
@@ -348,6 +358,7 @@ export default function ChatbotAIPage({ user }) {
 
   // --- EFFECTS ---
   useEffect(() => { isTypingRef.current = isTyping; }, [isTyping]);
+
 
   useEffect(() => {
     const handleClickOutside = (event) => { if (isMenuOpen && !event.target.closest('.input-area-wrapper')) setIsMenuOpen(false); };

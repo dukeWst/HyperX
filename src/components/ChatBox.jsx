@@ -126,11 +126,20 @@ const ChatSession = ({
         if (!newMessage.trim() || !conversation) return;
         const content = newMessage.trim();
         setNewMessage("");
-        await supabase.from('messages').insert({
+
+        const { error } = await supabase.from('messages').insert({
             conversation_id: conversation.id,
             sender_id: currentUser.id,
             content: content
         });
+
+        if (!error) {
+            // Update updated_at để conversation ngoi lên đầu
+            await supabase
+                .from('conversations')
+                .update({ updated_at: new Date().toISOString() })
+                .eq('id', conversation.id);
+        }
     };
 
     const handleClearChat = async () => {
@@ -284,7 +293,8 @@ const ChatSession = ({
                     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" />
                     <div className="fixed inset-0 overflow-y-auto flex min-h-full items-center justify-center p-4">
                         <DialogPanel className="w-full max-w-md transform overflow-hidden rounded-3xl bg-[#0B0D14] border border-white/10 p-6 shadow-2xl ring-1 ring-white/5">
-                            <DialogTitle className="text-lg font-bold text-white uppercase mb-4">Clear Conversation?</DialogTitle>
+                            <DialogTitle className="text-lg font-bold text-white uppercase mb-4 text-center">Delete Conversation?</DialogTitle>
+                            <p className="text-gray-400 text-sm mb-4 text-center py-6 font-semibold border-t border-white/10">Delete the entire conversation? This can’t be undone.</p>
                             <div className="flex gap-3">
                                 <button onClick={() => setIsConfirmModalOpen(false)} className="flex-1 px-4 py-3 rounded-xl bg-white/5 text-gray-400 text-xs font-bold uppercase">Cancel</button>
                                 <button onClick={handleClearChat} className="flex-1 px-4 py-3 rounded-xl bg-red-600 text-white text-xs font-bold uppercase hover:bg-red-500">Delete All</button>
