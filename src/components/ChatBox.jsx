@@ -136,6 +136,23 @@ const ChatSession = ({
         }
     }, [messages, isOpen, conversation, currentUser]);
 
+    // Listen for clear events from Header
+    useEffect(() => {
+        const handleCleared = (e) => {
+            const { conversationId } = e.detail;
+            if (conversation && conversation.id === conversationId) {
+                // Determine new cleared date (now)
+                const now = new Date().toISOString();
+                setClearedAt(now);
+                // Clear messages immediately
+                setMessages([]);
+            }
+        };
+
+        window.addEventListener('hyperx-chat-deleted', handleCleared);
+        return () => window.removeEventListener('hyperx-chat-deleted', handleCleared);
+    }, [conversation]);
+
     // --- HANDLERS ---
     const handleSendMessage = async (e) => {
         e?.preventDefault();
@@ -240,7 +257,7 @@ const ChatSession = ({
                             <MenuItem>
                                 {({ active }) => (
                                     <button onClick={() => setIsConfirmModalOpen(true)} disabled={messages.length === 0} className={`${active ? 'bg-red-500/10 text-red-400' : 'text-gray-400'} group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-bold uppercase tracking-widest transition-all disabled:opacity-50`}>
-                                        <Trash2 size={16} /> Clear History
+                                        <Trash2 size={16} /> Delete History
                                     </button>
                                 )}
                             </MenuItem>

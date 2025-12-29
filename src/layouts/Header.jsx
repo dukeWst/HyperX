@@ -188,10 +188,23 @@ const Header = ({ user }) => {
                         .limit(1)
                         .maybeSingle();
 
+                    // Check if conversation was cleared by user
+                    const clearedAt = user.id === c.user_1 ? c.user_1_cleared_at : c.user_2_cleared_at;
+                    let visibleMsg = lastMsg;
+
+                    if (clearedAt && lastMsg) {
+                        const clearTime = new Date(clearedAt).getTime();
+                        const msgTime = new Date(lastMsg.created_at).getTime();
+                        // Nếu tin nhắn cuối cùng cũ hơn thời điểm xóa -> Coi như không có tin nhắn
+                        if (msgTime <= clearTime) {
+                            visibleMsg = null;
+                        }
+                    }
+
                     return {
                         ...c,
                         partner,
-                        lastMessage: lastMsg
+                        lastMessage: visibleMsg
                     };
                 }));
 
@@ -334,6 +347,12 @@ const Header = ({ user }) => {
             // Remove from local state
             setConversations(prev => prev.filter(c => c.id !== convToDelete.id));
             setDeleteConvModalOpen(false);
+            
+            // Dispatch event to clear ChatBox immediately
+            window.dispatchEvent(new CustomEvent('hyperx-chat-deleted', { 
+                detail: { conversationId: convToDelete.id } 
+            }));
+
             setConvToDelete(null);
         } catch (err) {
             console.error("Error deleting conversation:", err);

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, useRef } from "react";
 import { supabase } from "../../routes/supabaseClient";
-import { Search, Plus, MessageSquare, TrendingUp, Users, Bot, Sparkles, ArrowRight } from "lucide-react";
+// Đã thêm 'X' vào import dưới đây
+import { Search, Plus, MessageSquare, TrendingUp, Users, Bot, Sparkles, ArrowRight, X } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import PostFormModal from "./PostFormModal";
 import PostItem from "./PostItem";
@@ -191,16 +192,20 @@ export default function Community({ user }) {
         } finally {
             setLoadingFollowing(false);
         }
-    }, [currentUser]);
+    }, [currentUser?.id]);
 
     useEffect(() => {
-        const fetch = async () => {
-            setLoading(true); 
-            await Promise.all([loadPosts(), loadFollowing()]);
+        const fetchPosts = async () => {
+            setLoading(true);
+            await loadPosts();
             setLoading(false);
         };
-        fetch();
-    }, [loadPosts, loadFollowing]);
+        fetchPosts();
+    }, [loadPosts]);
+
+    useEffect(() => {
+        loadFollowing();
+    }, [loadFollowing]);
 
     const submitPost = async () => {
         if (!currentUser || !currentUser.id) return alert("Lỗi: Không tìm thấy thông tin người dùng!");
@@ -317,8 +322,17 @@ export default function Community({ user }) {
                                         placeholder="Search discussions..."
                                         value={searchQuery}
                                         onChange={(e) => handleSearchChange(e.target.value)}
-                                        className="block w-full pl-10 pr-3 py-2.5 border border-white/10 rounded-xl bg-white/5 text-gray-300 placeholder-gray-500 focus:outline-none focus:bg-black/40 focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 sm:text-sm transition-all"
+                                        className="block w-full pl-10 pr-10 py-2.5 border border-white/10 rounded-xl bg-white/5 text-gray-300 placeholder-gray-500 focus:outline-none focus:bg-black/40 focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 sm:text-sm transition-all"
                                     />
+                                    {/* Nút X clear text */}
+                                    {searchQuery && (
+                                        <button
+                                            onClick={() => handleSearchChange("")}
+                                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-white transition-colors cursor-pointer"
+                                        >
+                                            <X size={16} />
+                                        </button>
+                                    )}
                                 </div>
 
                                 {currentUser ? (

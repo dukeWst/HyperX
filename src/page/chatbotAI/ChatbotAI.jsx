@@ -380,7 +380,7 @@ export default function ChatbotAIPage({ user }) {
       setIsProfileLoading(false);
     };
     fetchUserProfile();
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => {
     if (!isChatStarted) return;

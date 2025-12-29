@@ -97,7 +97,8 @@ export default function App() {
 
   useEffect(() => {
     // Lấy session ngay lập tức khi load trang với độ trễ tối thiểu để tạo hiệu ứng "Boot" sang trọng
-    const MIN_LOAD_TIME = 1500;
+    const hasBooted = sessionStorage.getItem('hyperx_has_booted');
+    const MIN_LOAD_TIME = hasBooted ? 0 : 1500;
     const startTime = Date.now();
 
     supabase.auth.getSession()
@@ -117,6 +118,10 @@ export default function App() {
           setUser(session?.user || null);
           setIsFadingOut(true); 
           
+          if (!hasBooted) {
+              sessionStorage.setItem('hyperx_has_booted', 'true');
+          }
+
           setTimeout(() => {
             setIsAuthLoading(false);
           }, 1000);
