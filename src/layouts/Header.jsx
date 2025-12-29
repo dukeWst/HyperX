@@ -318,8 +318,32 @@ const Header = ({ user }) => {
         setDropdownOpen(false);
         setLoggingOut(true);
         navigate('/'); // Điều hướng về Home trước để tránh PrivateRoute hiện modal
-        await supabase.auth.signOut();
-        setTimeout(() => setLoggingOut(false), 800);
+        
+        try {
+            // Check if we even have a session first to avoid unnecessary 403s
+            const { data: { session } } = await supabase.auth.getSession();
+            
+            if (!session) {
+                // No session, just clear local data and leave
+                console.log("No active session found, skipping server signOut.");
+                Object.keys(localStorage).forEach(key => {
+                    if (key.startsWith('sb-')) localStorage.removeItem(key);
+                });
+                return;
+            }
+
+            // Attempt standard sign out
+            const { error } = await supabase.auth.signOut();
+            if (error) throw error;
+        } catch (error) {
+            console.warn("Logout error (cleaning up locally):", error);
+            // If server refuses (e.g. 403), force clear all Supabase keys
+            Object.keys(localStorage).forEach(key => {
+                if (key.startsWith('sb-')) localStorage.removeItem(key);
+            });
+        } finally {
+            setTimeout(() => setLoggingOut(false), 800);
+        }
     };
 
     // --- XÓA HỘI THOẠI (Soft Delete) ---
@@ -762,7 +786,7 @@ const Header = ({ user }) => {
                                         className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-white/5 flex items-center gap-2"
                                     >
                                         <TrashIcon className="w-4 h-4" />
-                                        Delete
+                                        Delete 
                                     </button>
                                 </div>
                             )}

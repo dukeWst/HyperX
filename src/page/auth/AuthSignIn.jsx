@@ -156,7 +156,7 @@ const AuthSignIn = () => {
                                 <Link to="/signup" className="hover:text-cyan-400 transition-colors">
                                     CREATE ACCOUNT
                                 </Link>
-                                <Link className="hover:text-cyan-400 transition-colors">
+                                <Link to="/forgot-password" className="hover:text-cyan-400 transition-colors">
                                     FORGOT PASSWORD?
                                 </Link>
                             </div>

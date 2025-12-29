@@ -637,16 +637,16 @@ const PostItem = ({ post: initialPost, currentUser, onPostDeleted, onPostUpdated
                 <div className="flex-shrink-0 mt-1">
                     {/* --- FIX QUAN TRỌNG: TRUYỀN PROPS CHÍNH XÁC --- */}
                     <UserAvatar 
-            user={{ 
-                id: postData.user_id, 
-                // Sử dụng hàm getAvatarUrl() bạn đã viết sẵn ở trên để xử lý logic lấy ảnh
-                avatar_url: getAvatarUrl(),
-                // Fallback metadata nếu cần
-                raw_user_meta_data: postData.raw_user_meta_data,
-                full_name: getAuthorName()
-            }} 
-            size="lg" 
-        />
+                        user={{ 
+                            id: postData.user_id, 
+                            // Sử dụng hàm getAvatarUrl() bạn đã viết sẵn ở trên để xử lý logic lấy ảnh
+                            avatar_url: getAvatarUrl(),
+                            // Fallback metadata nếu cần
+                            raw_user_meta_data: postData.raw_user_meta_data,
+                            full_name: getAuthorName()
+                        }} 
+                        size="lg" 
+                    />
                 </div>
                 <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start">

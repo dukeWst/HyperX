@@ -18,7 +18,7 @@ function AppRoutes({ user }) {
   const location = useLocation();
 
   // 1. Cải tiến logic ẩn Header (Dùng matchPath để chính xác hơn)
-  const hideHeaderOn = ['/signin', '/signup', '/verify', '/auth/callback',];
+  const hideHeaderOn = ['/signin', '/signup', '/verify', '/auth/callback','/forgot-password','/update-password'];
   // Kiểm tra xem path hiện tại có khớp với bất kỳ pattern nào không
   const showHeader = !hideHeaderOn.some(path => matchPath({ path, end: true }, location.pathname));
 

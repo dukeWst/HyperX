@@ -6,6 +6,8 @@ import AuthSignUp from '../page/auth/AuthSignUp';
 import NotFound from '../page/notfound/NotFound'
 import VerifyPage from '../page/auth/VerifyPage'
 import AuthCallback from '../page/auth/AuthCallback';
+import AuthForgotPassword from '../page/auth/AuthForgotPassword';
+import AuthUpdatePassword from '../page/auth/AuthUpdatePassword';
 import Product from '../page/product/page/Product';
 import NewProduct from '../page/product/page/NewProduct';
 import HomeWrapper from '../page/Home/HomeWrapper';
@@ -61,6 +63,16 @@ const routes = [
         path: "/auth/callback",
         element: AuthCallback,
         name: "Xác thực người dùng",
+    },
+    {
+        path: "/forgot-password",
+        element: AuthForgotPassword,
+        name: "Quên mật khẩu",
+    },
+    {
+        path: "/update-password",
+        element: AuthUpdatePassword,
+        name: "Cập nhật mật khẩu",
     },
     // -----------------------------------------------------------
     
