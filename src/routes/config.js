@@ -31,10 +31,10 @@ import ChatbotAIPage from '../page/chatbotAI/ChatbotAI';
 const routes = [
     {
         path: "/",
-        element: Community, 
+        element: HomeWrapper, // Conditional Root
         exact: true,
-        private: true,
-        name: "Cộng đồng", // Was "Trang Chủ", now Community
+        private: false, // Public, handled by wrapper
+        name: "Trang Chủ",
     },
     // {
     //     path: "/home",
@@ -143,6 +143,13 @@ const routes = [
         element: Setting, 
         private: true,
         name: "Cài đặt",
+    },
+    // -----------------------------------------------------------
+    {
+        path: "/community",
+        element: Community,
+        private: true,
+        name: "Cộng đồng",
     },
     {
         path: "/post/:id",  

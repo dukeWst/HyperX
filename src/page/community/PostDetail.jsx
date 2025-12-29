@@ -53,7 +53,7 @@ const PostDetail = ({ user }) => {
     }, [id, user]);
 
     const handlePostDeleted = () => {
-        navigate('/'); 
+        navigate('/community'); 
     };
 
     if (isLoading) {
@@ -69,7 +69,7 @@ const PostDetail = ({ user }) => {
         return (
             <div className="min-h-screen bg-[#05050A] flex flex-col items-center justify-center text-gray-400 gap-4">
                 <h2 className="text-xl font-semibold">Post not found</h2>
-                <button onClick={() => navigate('/')} className="text-cyan-400 hover:underline">
+                <button onClick={() => navigate('/community')} className="text-cyan-400 hover:underline">
                     Back to Community
                 </button>
             </div>

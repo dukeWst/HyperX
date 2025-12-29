@@ -28,6 +28,7 @@ function AppRoutes({ user }) {
   const hideFooterOn = [
     ...hideHeaderOn,
     '/chatbot-ai',
+    '/community',
 
     '/', 
     '/product',

@@ -17,7 +17,7 @@ import { MessageCircle } from 'lucide-react';
 
 const navigation = [
     { name: 'Product', href: 'product', private: true },
-    { name: 'Community', href: '/', private: true },
+    { name: 'Community', href: 'community', private: true },
     { name: 'Docs', href: 'docs', private: false },
     { name: 'Chatbot AI', href: 'chatbot-ai', private: true },
 ];
@@ -461,9 +461,9 @@ const Header = ({ user }) => {
                 {/* Logo Area */}
                 <div className="flex lg:flex-1 items-center gap-4">
                     <Link 
-                        to={user ? "/" : "/"} 
+                        to={user ? "/community" : "/"} 
                         onClick={() => {
-                            if (location.pathname === '/') {
+                            if (location.pathname === '/community') {
                                 window.dispatchEvent(new CustomEvent('hyperx-refresh-community'));
                             }
                         }}
@@ -496,7 +496,7 @@ const Header = ({ user }) => {
                                     if (!user && item.private) {
                                         e.preventDefault();
                                         setIsAuthModalOpen(true);
-                                    } else if (location.pathname === '/' && item.href === 'community') {
+                                    } else if (location.pathname === '/community' && item.href === 'community') {
                                         window.dispatchEvent(new CustomEvent('hyperx-refresh-community'));
                                     }
                                 }}

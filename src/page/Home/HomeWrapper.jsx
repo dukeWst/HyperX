@@ -1,3 +1,4 @@
+
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Home from './Home';
@@ -9,7 +10,7 @@ const HomeWrapper = ({ user }) => {
         // Nếu đã có user -> Đá sang Community ngay lập tức mà không cần fetch lại
         if (user) {
             console.log("User detected from prop, redirecting to Community...");
-            navigate('/', { replace: true });
+            navigate('/community', { replace: true });
         }
     }, [user, navigate]);
 

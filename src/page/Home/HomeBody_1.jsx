@@ -40,7 +40,7 @@ const HomeBody_1 = () => {
                 
                 <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-6 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300">
                     <Link
-                        to="/"
+                        to="/community"
                         className="w-full sm:w-auto px-10 py-5 bg-white text-black text-base font-black rounded-2xl shadow-[0_20px_40px_rgba(6,182,212,0.2)] hover:shadow-[0_25px_50px_rgba(6,182,212,0.4)] hover:bg-cyan-50 hover:scale-[1.05] active:scale-95 transition-all duration-300 uppercase tracking-tighter"
                     >
                         Initialize Project

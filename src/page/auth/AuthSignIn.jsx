@@ -53,7 +53,7 @@ const AuthSignIn = () => {
             setLoading(false);
             setMessage({ type: "success", text: `Chào mừng trở lại!` });
             setLoggingIn(true);
-            setTimeout(() => navigate("/"), 800);
+            setTimeout(() => navigate("/community"), 800);
 
         } catch (e) {
             setLoading(false);
